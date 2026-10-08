@@ -69,17 +69,29 @@ The server is one always-on process: web server, MCP endpoint and a background w
 
 ### Deploy on Azure Container Apps (Azure for Students, no card)
 
-`deploy/azure.ps1` creates a resource group, a Basic container registry in East Asia, where Azure can build the image (about USD 5 a month from the student credit), and a Container Apps environment and app in Malaysia West, the closest region to Neon's Singapore that Azure for Students allows. The app scales to zero when idle, which keeps it inside the monthly free allowance. Azure builds the image, so you don't need Docker. Secrets are read from `.env` and stored as Container Apps secrets.
+`deploy/azure.ps1` sets up a resource group, a Basic container registry (about USD 5 a month from the student credit), and a Container Apps environment and app in Malaysia West, the closest region to Neon's Singapore that Azure for Students allows. The app scales to zero when idle, which keeps it inside the monthly free allowance. Secrets go from `.env` straight into Azure and GitHub secrets.
 
-```bash
-az login
-```
+Student subscriptions don't let Azure build images, so GitHub Actions builds the image after the tests pass and uploads it to the registry. You don't need Docker locally.
 
-```bash
-powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1
-```
+1. Log in to Azure:
 
-Run the same command again to deploy an update. After WorkOS is set up and its values are in `.env`, add `-EnableSignIn`. The script checks your subscription's allowed regions first. To use another region, pass `-Location <region>`.
+   ```bash
+   az login
+   ```
+
+2. Run this once. It creates the registry, stores its credentials as GitHub secrets, and starts a build:
+
+   ```bash
+   powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1 -ConnectGitHub
+   ```
+
+3. When the GitHub workflow has passed, deploy the image of your latest pushed commit. Repeat this after each push:
+
+   ```bash
+   powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1
+   ```
+
+4. Once WorkOS is set up, add `-EnableSignIn`. Use `-PruneImages` now and then to keep only the 5 newest images.
 
 ### Deploy on Render (free) with WorkOS sign-in
 
