@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Staffing Planner</title>
+<meta name="description" content="See how many guests will arrive at each entrance, why the forecast is unsure, and pick a staffing plan. A research prototype.">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="min-h-screen bg-base-200">
+<header class="navbar bg-base-100 px-4 shadow-sm">
+  <div class="navbar-start">
+    <a href="/welcome" class="flex items-center gap-2 font-bold text-lg">
+      <svg viewBox="0 0 32 32" class="size-8" aria-hidden="true"><rect x="2" y="6" width="28" height="22" rx="7" fill="var(--color-primary)"/><path d="M9 28V17a7 7 0 0 1 14 0v11" fill="var(--color-base-100)"/><circle cx="16" cy="13" r="2.5" fill="var(--color-secondary)"/></svg>
+      Event Staffing Planner
+    </a>
+  </div>
+  <div class="navbar-end gap-2">
+    <a class="btn btn-ghost btn-sm" href="/privacy">Privacy</a>
+    <a class="btn btn-sm" data-signin href="/login">Sign in</a>
+  </div>
+</header>
+
+<main class="mx-auto w-full max-w-3xl px-4 py-6 sm:py-10">
+  <ul class="steps steps-horizontal w-full text-xs sm:text-sm" id="steps" aria-label="Progress">
+    <li class="step step-primary">Welcome</li>
+    <li class="step">The problem</li>
+    <li class="step">What it does</li>
+    <li class="step">About this prototype</li>
+    <li class="step">Start</li>
+  </ul>
+
+  <div class="card bg-base-100 shadow-md mt-6">
+    <div class="card-body gap-5 p-6 sm:p-10" id="panes">
+
+      <!-- 1. Welcome -->
+      <section data-step="0" class="page-enter">
+        <div class="flex flex-col items-center text-center gap-4">
+          <svg viewBox="0 0 240 120" class="w-full max-w-xs" role="img" aria-label="An entrance gate with guests walking in">
+            <rect x="20" y="96" width="200" height="10" rx="5" fill="var(--color-base-300)"/>
+            <path d="M60 96V52a60 30 0 0 1 120 0v44" fill="none" stroke="var(--color-primary)" stroke-width="12" stroke-linecap="round"/>
+            <rect x="96" y="30" width="48" height="16" rx="8" fill="var(--color-accent)"/>
+            <circle cx="88" cy="80" r="7" fill="var(--color-secondary)"/><rect x="82" y="86" width="12" height="10" rx="5" fill="var(--color-secondary)"/>
+            <circle cx="112" cy="78" r="7" fill="var(--color-info)"/><rect x="106" y="84" width="12" height="12" rx="5" fill="var(--color-info)"/>
+            <circle cx="136" cy="80" r="7" fill="var(--color-success)"/><rect x="130" y="86" width="12" height="10" rx="5" fill="var(--color-success)"/>
+            <circle cx="196" cy="82" r="6" fill="var(--color-secondary)" opacity=".6"/><circle cx="212" cy="84" r="6" fill="var(--color-info)" opacity=".6"/>
+          </svg>
+          <h1 class="text-3xl sm:text-4xl font-bold leading-tight">Plan the right number of staff for every entrance</h1>
+          <p class="text-base-content/80 text-lg max-w-xl">This tool predicts how many guests will arrive, shows how sure it is, and suggests staffing plans. You make the final choice.</p>
+          <p class="text-base-content/70">The short walkthrough takes about a minute.</p>
+        </div>
+      </section>
+
+      <!-- 2. The problem -->
+      <section data-step="1" hidden class="page-enter">
+        <h2 class="text-2xl font-bold">The problem</h2>
+        <p class="text-base-content/80">Every event has the same question: how many people should work at each entrance, and when?</p>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="card bg-secondary/40">
+            <div class="card-body">
+              <h3 class="card-title">Too few staff</h3>
+              <p>Long queues, unhappy guests, people missing the show.</p>
+            </div>
+          </div>
+          <div class="card bg-accent/50">
+            <div class="card-body">
+              <h3 class="card-title">Too many staff</h3>
+              <p>People standing around, and money spent that could go elsewhere.</p>
+            </div>
+          </div>
+        </div>
+        <div role="alert" class="alert alert-info alert-soft">
+          <span><strong>The hard part:</strong> nobody knows exactly how many guests will come. Rain, a concert in town or a new car park can all change it.</span>
+        </div>
+      </section>
+
+      <!-- 3. What it does -->
+      <section data-step="2" hidden class="page-enter">
+        <h2 class="text-2xl font-bold">What this tool does</h2>
+        <ul class="steps steps-vertical">
+          <li class="step step-primary" data-content="1">
+            <div class="text-left py-2"><strong>It predicts arrivals</strong><br><span class="text-base-content/75">For each entrance and hour: the most likely number of guests, plus a range for good and bad days.</span></div>
+          </li>
+          <li class="step step-primary" data-content="2">
+            <div class="text-left py-2"><strong>It listens to what you know</strong><br><span class="text-base-content/75">Tell it about roadworks, another event or a schedule change. Nothing changes until you confirm.</span></div>
+          </li>
+          <li class="step step-primary" data-content="3">
+            <div class="text-left py-2"><strong>It suggests staffing plans</strong><br><span class="text-base-content/75">From cheapest to shortest queues. You pick the balance that suits you.</span></div>
+          </li>
+        </ul>
+        <p class="text-base-content/70">You can use it on this website, or just by chatting with Claude.</p>
+      </section>
+
+      <!-- 4. About this prototype -->
+      <section data-step="3" hidden class="page-enter">
+        <h2 class="text-2xl font-bold">About this prototype</h2>
+        <p class="text-base-content/80">This is a research prototype. It's worth knowing what is real and what isn't.</p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="card bg-secondary/30">
+            <div class="card-body p-4">
+              <h3 class="font-bold">The park is made up</h3>
+              <p class="text-sm text-base-content/80">Parkland Theme Park, its <span data-fact="gates">three</span> entrances and <span data-fact="history_days">120</span> days of visitor history are invented, built to behave like real arrivals: busy mornings, an evening rush before the show, rainy days, a brand-new gate.</p>
+            </div>
+          </div>
+          <div class="card bg-primary/30">
+            <div class="card-body p-4">
+              <h3 class="font-bold">The numbers are really calculated</h3>
+              <p class="text-sm text-base-content/80">Nothing on screen is faked. Every forecast and plan is worked out live from that history by a forecasting model and an optimization algorithm.</p>
+            </div>
+          </div>
+          <div class="card bg-accent/40">
+            <div class="card-body p-4">
+              <h3 class="font-bold">The forecast is checked</h3>
+              <p class="text-sm text-base-content/80" data-fact-coverage>On past days it hadn't seen, the forecast's likely ranges were checked against what really happened.</p>
+            </div>
+          </div>
+          <div class="card bg-info/20">
+            <div class="card-body p-4">
+              <h3 class="font-bold">The methods are simple stand-ins</h3>
+              <p class="text-sm text-base-content/80">The model and the algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.</p>
+            </div>
+          </div>
+        </div>
+        <div role="alert" class="alert alert-soft">
+          <span><strong>What we are testing:</strong> whether showing <em>why</em> a forecast is unsure, and turning your knowledge into rules the planner follows, helps you make better staffing decisions.</span>
+        </div>
+      </section>
+
+      <!-- 5. Start -->
+      <section data-step="4" hidden class="page-enter">
+        <div class="flex flex-col items-center text-center gap-4">
+          <h2 class="text-2xl font-bold">Ready to try it?</h2>
+          <p class="text-base-content/80 max-w-lg">Sign in and you get your own copy of the demo park. Nothing you do there is visible to anyone else, and you can reset it at any time.</p>
+          <a class="btn btn-primary btn-lg" data-signin href="/login">Sign in to start</a>
+          <div class="divider">or</div>
+          <p class="text-base-content/80">Use it from Claude: add a custom connector with this address, then ask <q>Show me the forecast for Halloween Night.</q></p>
+          <div class="join w-full max-w-md">
+            <input class="input join-item w-full font-mono text-sm" id="mcp-url" readonly aria-label="Address for the Claude connector" value="">
+            <button class="btn join-item" type="button" id="copy">Copy</button>
+          </div>
+          <p class="text-sm text-base-content/60">Custom connectors need a paid Claude plan. <a class="link" href="/privacy">How your data is handled</a></p>
+        </div>
+      </section>
+
+      <div class="card-actions justify-between items-center border-t border-base-300 pt-4">
+        <button class="btn btn-ghost" type="button" id="back" disabled>Back</button>
+        <span class="text-sm text-base-content/60" id="counter">1 of 5</span>
+        <button class="btn btn-primary" type="button" id="next">Start the walkthrough</button>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="/static/welcome.js"></script>
+</body>
+</html>

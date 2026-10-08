@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Staffing Planner</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="min-h-screen bg-base-200">
+<div class="drawer lg:drawer-open">
+  <input id="nav-drawer" type="checkbox" class="drawer-toggle" aria-label="Open the menu">
+  <div class="drawer-content flex min-h-screen flex-col">
+    <header class="navbar sticky top-0 z-20 gap-2 bg-base-100 px-3 shadow-sm">
+      <div class="navbar-start gap-2 w-auto">
+        <label for="nav-drawer" class="btn btn-ghost btn-square lg:hidden" aria-label="Open the menu">
+          <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </label>
+        <a href="#/home" class="font-bold lg:hidden">Staffing Planner</a>
+      </div>
+      <div class="navbar-end ml-auto w-auto gap-2">
+        <span id="run-status" class="badge badge-soft badge-info gap-2" hidden><span class="loading loading-spinner loading-xs"></span>Updating plans</span>
+        <span id="sync" class="hidden text-xs text-base-content/60 sm:inline-flex items-center gap-1" aria-live="polite"><span class="status status-success"></span><span>Up to date</span></span>
+        <button id="help-btn" class="btn btn-ghost btn-circle btn-sm" type="button" aria-label="What am I looking at?">
+          <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
+        </button>
+        <div class="dropdown dropdown-end">
+          <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm" aria-label="Account">
+            <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          </div>
+          <ul tabindex="0" class="menu dropdown-content z-30 mt-2 w-60 rounded-box bg-base-100 p-2 shadow-lg">
+            <li class="menu-title" id="who">Signed in</li>
+            <li><a href="#/claude">Use it from Claude</a></li>
+            <li id="reset-item"><button type="button" id="reset-btn">Start over with a fresh demo</button></li>
+            <li id="signout-item"><a href="/logout">Sign out</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-base-300 bg-base-100 px-4 py-2 text-sm">
+      <label class="flex min-w-0 items-center gap-2">
+        <span class="text-base-content/70">Event</span>
+        <select id="event-select" class="select select-sm min-w-0 max-w-64"></select>
+      </label>
+      <label class="flex min-w-0 items-center gap-2">
+        <span class="whitespace-nowrap text-base-content/70">Looking at</span>
+        <select id="scenario-select" class="select select-sm min-w-0 max-w-64"></select>
+      </label>
+    </div>
+
+    <main id="page" class="mx-auto w-full max-w-5xl flex-1 px-4 py-6" tabindex="-1"></main>
+  </div>
+
+  <div class="drawer-side z-30">
+    <label for="nav-drawer" aria-label="Close the menu" class="drawer-overlay"></label>
+    <aside class="flex min-h-full w-64 flex-col bg-base-100">
+      <a href="#/home" class="flex items-center gap-2 px-5 py-4 text-lg font-bold">
+        <svg viewBox="0 0 32 32" class="size-8" aria-hidden="true"><rect x="2" y="6" width="28" height="22" rx="7" fill="var(--color-primary)"/><path d="M9 28V17a7 7 0 0 1 14 0v11" fill="var(--color-base-100)"/><circle cx="16" cy="13" r="2.5" fill="var(--color-secondary)"/></svg>
+        Staffing Planner
+      </a>
+      <ul class="menu w-full gap-1 px-3" id="nav"></ul>
+      <div class="mt-auto p-4">
+        <a href="#/about" class="alert alert-soft text-xs">Research prototype: made-up park, real calculations. Learn more.</a>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="explain" class="modal">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold" id="explain-title"></h3>
+    <div class="py-3 space-y-2 text-base-content/85" id="explain-body"></div>
+    <div class="modal-action">
+      <a class="btn btn-ghost" id="explain-more" href="#/learn">More in Learn</a>
+      <form method="dialog"><button class="btn">Got it</button></form>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="confirm" class="modal">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold" id="confirm-title"></h3>
+    <div class="py-3 text-base-content/85" id="confirm-body"></div>
+    <div class="modal-action">
+      <form method="dialog"><button class="btn btn-ghost" value="cancel">Cancel</button></form>
+      <button class="btn btn-primary" type="button" id="confirm-yes">Yes</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="change" class="modal">
+  <div class="modal-box max-w-xl" id="change-box"></div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<div class="toast toast-end toast-bottom z-50" id="toasts" aria-live="polite"></div>
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

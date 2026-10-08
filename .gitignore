@@ -8,3 +8,6 @@ local.db-*
 # Personal and editor files
 .vibe-wise/
 .claude/
+
+# Local build tools (large binaries)
+tools/
