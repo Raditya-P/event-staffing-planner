@@ -25,6 +25,7 @@ def test_pages(client):
     assert "earth-dark" in panel  # the website's theme is inlined into the chat panel
     for asset in ("app.css", "app.js", "charts.js", "welcome.js", "privacy.js"):
         assert client.get(f"/static/{asset}").status_code == 200
+    assert client.get("/static/fonts/ibm-plex-sans-latin-wght.woff2").headers["content-type"] == "font/woff2"
     assert client.get("/privacy").status_code == 200
 
 

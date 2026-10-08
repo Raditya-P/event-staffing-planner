@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -27,6 +28,8 @@ from .seed import ensure_demo_data, reset_workspace_demo
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).parent / "static"
+# Slim Linux images ship no mime.types, so StaticFiles would serve the font as application/octet-stream.
+mimetypes.add_type("font/woff2", ".woff2")
 
 
 def _actor(request: Request) -> S.Actor:
