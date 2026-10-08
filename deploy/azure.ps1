@@ -17,6 +17,9 @@ param(
     [string]$ResourceGroup = "forecast-mcp-rg",
     # Closest region to the Neon database (Singapore) that Azure for Students subscriptions allow.
     [string]$Location = "malaysiawest",
+    # Where the image registry lives. Azure's cloud build (ACR Tasks) is not offered in Malaysia West, so the
+    # registry sits in East Asia; it is only used when a new image is pulled, so its distance doesn't matter.
+    [string]$RegistryLocation = "eastasia",
     [string]$AppName = "forecast-mcp",
     [string]$EnvironmentName = "forecast-mcp-env",
     [switch]$EnableSignIn
@@ -58,7 +61,8 @@ Step "Checking the Azure login"
 if (-not (az-quiet account show --output none)) { throw "Not logged in. Run: az login" }
 $sub = az account show --query "{name:name, id:id}" --output json | ConvertFrom-Json
 Write-Host "Subscription: $($sub.name)"
-$Registry = ("fmcp" + ($sub.id -replace '-', '').Substring(0, 12)).ToLower()   # globally unique, stable per subscription
+# Globally unique and stable per subscription; the region code keeps names distinct if the registry ever moves.
+$Registry = ("fmcp" + ($sub.id -replace '-', '').Substring(0, 12) + ($RegistryLocation -replace '[^a-z]', '').Substring(0, 2)).ToLower()
 
 $dotenv = Read-DotEnv
 if (-not $dotenv["DATABASE_URL"]) { throw "DATABASE_URL is empty in .env" }
@@ -77,8 +81,10 @@ if ($EnableSignIn) {
 
 Step "Checking that $Location is allowed"
 $allowed = az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" --output json | ConvertFrom-Json
-if ($allowed -and ($allowed -notcontains $Location)) {
-    throw "Your subscription only allows these regions: $($allowed -join ', '). Run again with -Location <one of them>."
+foreach ($loc in $Location, $RegistryLocation) {
+    if ($allowed -and ($allowed -notcontains $loc)) {
+        throw "Your subscription only allows these regions: $($allowed -join ', '). '$loc' is not one of them."
+    }
 }
 
 Step "Preparing the subscription (one-time, can take a minute)"
@@ -91,9 +97,13 @@ if ((az group exists --name $ResourceGroup).Trim() -ne "true") {
     az group create --name $ResourceGroup --location $Location --output none
 }
 
-Step "Container registry $Registry"
+Step "Container registry $Registry in $RegistryLocation"
+$others = az acr list --resource-group $ResourceGroup --query "[?name!='$Registry'].name" --output tsv
+if ($others) {
+    Write-Warning "Other registries in this group still cost about USD 5 a month each: $($others -join ', '). Delete unused ones with: az acr delete --name <name> --resource-group $ResourceGroup"
+}
 if (-not (az-quiet acr show --name $Registry --resource-group $ResourceGroup --output none)) {
-    az acr create --name $Registry --resource-group $ResourceGroup --location $Location --sku Basic --admin-enabled true --output none
+    az acr create --name $Registry --resource-group $ResourceGroup --location $RegistryLocation --sku Basic --admin-enabled true --output none
 }
 
 $tag = (git rev-parse --short HEAD).Trim()
