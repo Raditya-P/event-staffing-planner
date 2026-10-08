@@ -1,0 +1,36 @@
+# Render Blueprint: New -> Blueprint in the Render dashboard, pick this repository.
+# Secrets marked `sync: false` are asked for once, when the Blueprint is created; never put them in this file.
+services:
+  - type: web
+    name: forecast-mcp
+    runtime: docker
+    plan: free
+    region: singapore          # same region as the Neon database
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass   # deploy a commit only after the GitHub tests pass
+    envVars:
+      - key: ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: ENGINE_PROFILE
+        value: light           # the free instance has a tenth of a CPU
+      - key: SINGLE_INSTANCE
+        value: "1"
+      - key: AUTH_MODE
+        value: oidc
+      - key: DATABASE_URL       # Neon connection string
+        sync: false
+      - key: OIDC_ISSUER        # WorkOS AuthKit domain, e.g. https://example-123.authkit.app
+        sync: false
+      - key: OIDC_CLIENT_ID     # WorkOS OAuth application for the dashboard login
+        sync: false
+      - key: OIDC_CLIENT_SECRET
+        sync: false
+      - key: OIDC_PKCE          # WorkOS accepts PKCE only for apps that registered themselves
+        value: "0"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CONTACT_EMAIL
+        sync: false

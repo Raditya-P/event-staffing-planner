@@ -67,6 +67,28 @@ Settings: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET
 
 The server is one always-on process: web server, MCP endpoint and a background worker for forecast and optimization runs. The `Dockerfile` builds it for any container host. Pick a region close to your Neon database (yours is in Singapore, `ap-southeast-1`). Set the environment variables from `.env.example` in the host's dashboard, with `ENV=production`.
 
+### Deploy on Render (free) with WorkOS sign-in
+
+`render.yaml` describes the whole service: free plan, Singapore region (next to Neon), the light engine profile and sign-in switched on. GitHub Actions also builds the Docker image and smoke-tests it on every push. Render deploys a commit only after those checks pass.
+
+**1. WorkOS (sign-in): use the free staging environment.**
+1. Create a WorkOS account and stay in the **Staging** environment. Production asks for billing details.
+2. Under AuthKit, note your AuthKit domain, e.g. `https://something.authkit.app`. That is `OIDC_ISSUER`.
+3. Enable **Dynamic Client Registration**. Claude registers itself through it.
+4. Add the redirect URI `https://claude.ai/api/mcp/auth_callback`.
+5. Create an **OAuth application** for the dashboard: a confidential app with redirect URI `https://<your-service>.onrender.com/auth/callback`. Its client ID and secret are `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`.
+
+**2. Render (hosting).**
+1. In the Render dashboard, choose New → Blueprint and pick this repository. Give Render access to the private repo when GitHub asks.
+2. Choose the free plan if asked.
+3. Fill in the secrets it asks for: `DATABASE_URL` (the Neon string), the three `OIDC_*` values, and `CONTACT_EMAIL`. `SESSION_SECRET` is generated for you.
+4. Wait for the first deploy, then open `https://<your-service>.onrender.com`. Sign in, and the demo appears in your own workspace.
+5. If the service name differs from the redirect URI you gave WorkOS, update it in WorkOS.
+
+**3. Claude.** Add a custom connector with `https://<your-service>.onrender.com/mcp` and sign in when asked.
+
+The free service sleeps after 15 minutes without traffic. The first request after that waits about a minute while it starts and retrains the model, so open the dashboard before a session to wake it.
+
 ### Running it for free
 
 - **Database:** Neon's free plan gives 0.5 GB of storage and a monthly compute allowance per project. The server is built to stay inside it:

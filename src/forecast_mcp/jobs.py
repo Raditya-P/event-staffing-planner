@@ -275,7 +275,7 @@ def warm_up() -> None:
 
 
 def resume_unfinished() -> None:
-    """Re-queue runs whose worker died (a restart, a crash) so another worker picks them up."""
+    """Re-queue runs whose worker died (a restart, a crash, a free host going to sleep) so a worker picks them up."""
     cutoff = utcnow() - STALE_AFTER
     with session_scope() as s:
         stuck = s.scalars(select(Run).where(Run.status == "running"))
@@ -283,7 +283,7 @@ def resume_unfinished() -> None:
             started = run.started_at
             if started is not None and started.tzinfo is None:
                 started = started.replace(tzinfo=cutoff.tzinfo)
-            if run.claimed_by == WORKER_ID or started is None or started < cutoff:
+            if settings.single_instance or run.claimed_by == WORKER_ID or started is None or started < cutoff:
                 run.status, run.stage, run.claimed_by = "queued", "queued", None
     if RUN_INLINE:
         while (run_id := claim()) is not None:
