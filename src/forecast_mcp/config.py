@@ -66,7 +66,9 @@ class Settings:
     host: str = field(default_factory=lambda: _env("HOST", "127.0.0.1"))
     port: int = field(default_factory=lambda: _int("PORT", 8000))
     # The address people and Claude use to reach this server, e.g. https://forecast.example.com (no trailing slash).
-    public_base_url: str = field(default_factory=lambda: _env("PUBLIC_BASE_URL").rstrip("/"))
+    # On Render this defaults to the service's onrender.com address.
+    public_base_url: str = field(
+        default_factory=lambda: (_env("PUBLIC_BASE_URL") or _env("RENDER_EXTERNAL_URL")).rstrip("/"))
     # Extra host names allowed to reach /mcp (a tunnel or deployment domain), comma-separated.
     allowed_hosts: list[str] = field(default_factory=lambda: _list("ALLOWED_HOSTS"))
 

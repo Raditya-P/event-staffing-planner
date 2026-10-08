@@ -15,3 +15,20 @@ jobs:
           python-version: "3.12"
       - run: uv sync --locked
       - run: uv run pytest
+
+  docker:
+    # Builds the production image and checks that it starts and serves requests.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t forecast-mcp .
+      - name: Start the container and smoke-test it
+        run: |
+          docker run -d --name app -p 8000:8000 -e DATABASE_URL=sqlite:////tmp/smoke.db -e ENGINE_PROFILE=light -e AUTH_MODE=none -e DEV_ROUTES=0 forecast-mcp
+          for i in $(seq 1 60); do curl -fs http://127.0.0.1:8000/healthz && break; sleep 2; done
+          curl -fs http://127.0.0.1:8000/api/events | python3 -c "import sys, json; e = json.load(sys.stdin); assert len(e) == 2, e; print('events ok')"
+          curl -fs http://127.0.0.1:8000/ > /dev/null
+          echo "dashboard ok"
+      - name: Container logs
+        if: always()
+        run: docker logs app | tail -40
