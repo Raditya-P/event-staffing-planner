@@ -7,7 +7,8 @@ the tests pass and pushes it to your Azure registry. This script sets that up an
     az login                                       # once, in the browser
     .\deploy\azure.ps1 -ConnectGitHub              # once: registry + GitHub secrets, then GitHub builds the image
     .\deploy\azure.ps1                             # deploy the image of your latest pushed commit (and every update)
-    .\deploy\azure.ps1 -EnableSignIn               # once WorkOS values are in .env
+    (sign-in is on automatically when OIDC_ISSUER, OIDC_CLIENT_ID and OIDC_CLIENT_SECRET are in .env;
+     -DisableSignIn turns it off on purpose)
 
 What it creates (in one resource group):
   - an Azure Container Registry, Basic tier (about USD 5 a month from the student credit)
@@ -25,7 +26,8 @@ param(
     [string]$EnvironmentName = "forecast-mcp-env",
     [string]$ImageTag = "",          # default: the commit you have checked out (it must be pushed and built)
     [switch]$ConnectGitHub,
-    [switch]$EnableSignIn,
+    [switch]$EnableSignIn,           # kept for compatibility: fails if the WorkOS values are missing
+    [switch]$DisableSignIn,
     [switch]$PruneImages             # keep only the 5 newest images in the registry
 )
 
@@ -141,11 +143,11 @@ if (-not $dotenv["SESSION_SECRET"]) {
     Add-Content ".env" "`nSESSION_SECRET=$($dotenv['SESSION_SECRET'])"
     Write-Host "Generated SESSION_SECRET and saved it in .env"
 }
-if ($EnableSignIn) {
-    foreach ($k in "OIDC_ISSUER", "OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET") {
-        if (-not $dotenv[$k]) { throw "-EnableSignIn needs $k in .env" }
-    }
-}
+$haveOidc = $dotenv["OIDC_ISSUER"] -and $dotenv["OIDC_CLIENT_ID"] -and $dotenv["OIDC_CLIENT_SECRET"]
+if ($EnableSignIn -and -not $haveOidc) { throw "-EnableSignIn needs OIDC_ISSUER, OIDC_CLIENT_ID and OIDC_CLIENT_SECRET in .env" }
+# Sign-in stays on whenever it is configured, so a routine update can never silently open the site.
+$EnableSignIn = $haveOidc -and -not $DisableSignIn
+if (-not $EnableSignIn) { Write-Warning "Deploying WITHOUT sign-in: anyone with the address can use the app." }
 
 Step "Container Apps environment $EnvironmentName"
 if (-not (az-quiet containerapp env show --name $EnvironmentName --resource-group $ResourceGroup --output none)) {

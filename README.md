@@ -131,6 +131,18 @@ Several instances can share one database. Runs are claimed with `FOR UPDATE SKIP
 
 At start-up the server prints a warning for every unsafe production setting (no sign-in, `/dev` pages on, a weak session secret). With `AUTH_MODE=oidc` and missing settings, it refuses to start.
 
+## Website styles
+
+The pages use [daisyUI 5](https://daisyui.com) on Tailwind CSS 4, with the soft "cupcake" theme and a matching dark theme. The stylesheet is built into `src/forecast_mcp/static/app.css`, which is committed, and the same file is inlined into the Claude chat panel. After changing classes in the HTML or JS files, rebuild it. The build needs no Node.js, only Tailwind's standalone program saved at `tools/tailwindcss.exe`:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\build-css.ps1
+```
+
+Page flow:
+- `/welcome`: a five-step introduction. It covers what the tool is for, the problem, what it does, what is real and what is made up in this prototype, and how to start.
+- After signing in: a seven-step tour on first visit, then separate pages for the overview, forecast, staffing plans, what-ifs, inbox (notes from Claude), history and lessons.
+
 ## How a planner's note flows
 
 1. The planner tells Claude, for example: "roadworks close the north road from 5 to 8 pm".

@@ -1,0 +1,144 @@
+/* Source stylesheet. Build with:  powershell -ExecutionPolicy Bypass -File .\scripts\build-css.ps1
+   Output: src/forecast_mcp/static/app.css (committed, served by the app and inlined into the chat panel). */
+@import "tailwindcss" source(none);
+@source "../static/*.html";
+@source "../static/*.js";
+
+@plugin "./daisyui.mjs" {
+  themes: cupcake --default;
+  logs: false;
+}
+
+/* Soft dark companion to cupcake: dim's calm surfaces with cupcake's teal, pink and amber. */
+@plugin "./daisyui-theme.mjs" {
+  name: "cupcake-night";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: oklch(30.857% 0.023 264.149);
+  --color-base-200: oklch(28.036% 0.019 264.182);
+  --color-base-300: oklch(26.346% 0.018 262.177);
+  --color-base-content: oklch(90% 0.02 240);
+  --color-primary: oklch(78% 0.12 182);
+  --color-primary-content: oklch(22% 0.05 188);
+  --color-secondary: oklch(80% 0.09 345);
+  --color-secondary-content: oklch(25% 0.08 350);
+  --color-accent: oklch(84% 0.11 75);
+  --color-accent-content: oklch(26% 0.06 50);
+  --color-neutral: oklch(24.731% 0.02 264.094);
+  --color-neutral-content: oklch(88% 0.02 240);
+  --color-info: oklch(78% 0.12 230);
+  --color-info-content: oklch(20% 0.05 240);
+  --color-success: oklch(80% 0.13 162);
+  --color-success-content: oklch(20% 0.05 170);
+  --color-warning: oklch(84% 0.14 86);
+  --color-warning-content: oklch(24% 0.06 60);
+  --color-error: oklch(76% 0.13 20);
+  --color-error-content: oklch(20% 0.06 20);
+  --radius-selector: 1rem;
+  --radius-field: 2rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 2px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ---- Chart tokens (validated for colour-blind separation and 3:1 contrast on each theme's surface) ---- */
+:root, [data-theme="cupcake"] {
+  --series-1: #007fa6;  /* blue-teal: the forecast, day-to-day variation, plans */
+  --series-2: #d76821;  /* amber: limited history */
+  --seq-1: oklch(94% 0.03 225); --seq-2: oklch(86% 0.06 225); --seq-3: oklch(76% 0.09 225);
+  --seq-4: oklch(64% 0.11 225); --seq-5: oklch(54% 0.12 225); --seq-6: oklch(44% 0.11 228);
+  --seq-ink-light: var(--color-base-content); --seq-ink-dark: #ffffff;
+}
+[data-theme="cupcake-night"] {
+  --series-1: #1aa1c9;
+  --series-2: #dd7438;
+  --seq-1: oklch(36% 0.04 225); --seq-2: oklch(44% 0.07 225); --seq-3: oklch(52% 0.09 225);
+  --seq-4: oklch(62% 0.11 225); --seq-5: oklch(72% 0.11 225); --seq-6: oklch(82% 0.08 225);
+  --seq-ink-light: var(--color-base-content); --seq-ink-dark: oklch(20% 0.03 240);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --series-1: #1aa1c9;
+    --series-2: #dd7438;
+    --seq-1: oklch(36% 0.04 225); --seq-2: oklch(44% 0.07 225); --seq-3: oklch(52% 0.09 225);
+    --seq-4: oklch(62% 0.11 225); --seq-5: oklch(72% 0.11 225); --seq-6: oklch(82% 0.08 225);
+    --seq-ink-light: var(--color-base-content); --seq-ink-dark: oklch(20% 0.03 240);
+  }
+}
+:root {
+  --surface-1: var(--color-base-100);
+  --surface-2: var(--color-base-200);
+  --text-primary: var(--color-base-content);
+  --text-secondary: color-mix(in oklab, var(--color-base-content) 78%, transparent);
+  --text-muted: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+  --axis-ink: color-mix(in oklab, var(--color-base-content) 58%, transparent);
+  --grid: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+  --baseline: color-mix(in oklab, var(--color-base-content) 28%, transparent);
+  --border: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  --closed: var(--color-base-300);
+  --accent: var(--color-primary-content);
+  --warn-bg: color-mix(in oklab, var(--color-warning) 30%, var(--color-base-100));
+  --warn-ink: var(--color-warning-content);
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---- Charts (SVG drawn by charts.js) ---- */
+[hidden] { display: none !important; }
+.fc-root { position: relative; font-size: 14px; line-height: 1.45; color: var(--text-primary); }
+.fc-root * { box-sizing: border-box; }
+.fc-h { font-size: 1rem; font-weight: 700; margin: 0 0 2px; }
+.fc-sub { font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 10px; }
+.fc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 10px; }
+.fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.fc-key-rect { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.fc-key-line { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+.fc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.fc-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-box); padding: 12px 14px 10px; min-width: 0; }
+.fc-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.fc-card-title { font-weight: 700; font-size: 0.9rem; }
+.fc-card-meta { font-size: 0.8rem; color: var(--text-secondary); }
+.fc-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); }
+.fc-strip-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+svg.fc-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.fc-svg text { font-family: var(--font); font-size: 10px; fill: var(--axis-ink); font-variant-numeric: tabular-nums; }
+.fc-svg .fc-label { fill: var(--text-secondary); font-size: 10.5px; }
+.fc-svg .fc-label-strong { fill: var(--text-primary); font-size: 11px; font-weight: 700; }
+.fc-svg .fc-halo { paint-order: stroke; stroke: var(--surface-1); stroke-width: 4px; stroke-linejoin: round; }
+.fc-gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.fc-baseline { stroke: var(--baseline); stroke-width: 1; shape-rendering: crispEdges; }
+.fc-crosshair { stroke: var(--text-muted); stroke-width: 1; pointer-events: none; }
+.fc-hit { fill: transparent; cursor: crosshair; outline: none; }
+.fc-hit:focus-visible { stroke: var(--series-1); stroke-width: 1.5; }
+.fc-point { cursor: pointer; outline: none; }
+.fc-point:focus-visible .fc-ring { stroke: var(--series-1); stroke-width: 2.5; }
+.fc-tooltip { position: absolute; z-index: 30; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  min-width: 170px; max-width: 260px; display: none; }
+.fc-tooltip .fc-tt-title { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.fc-tooltip .fc-tt-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.fc-tooltip .fc-tt-row b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.fc-tooltip .fc-tt-name { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+.fc-notes { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.82rem; color: var(--text-secondary); }
+.fc-notes li { margin: 3px 0; padding-left: 14px; position: relative; }
+.fc-notes li::before { content: "•"; position: absolute; left: 2px; color: var(--text-muted); }
+.fc-table-toggle { font: inherit; font-size: 0.8rem; background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.fc-table-wrap { overflow-x: auto; margin-top: 6px; }
+table.fc-table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; width: 100%; }
+.fc-table th, .fc-table td { padding: 4px 6px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+.fc-table th:first-child, .fc-table td:first-child { text-align: left; }
+.fc-table th { color: var(--text-secondary); font-weight: 700; }
+table.fc-heat { border-collapse: separate; border-spacing: 3px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.fc-heat th { font-weight: 500; color: var(--text-muted); padding: 0 2px; text-align: center; }
+.fc-heat th.fc-row-head { text-align: left; color: var(--text-secondary); padding-right: 6px; white-space: nowrap; }
+.fc-heat td { width: 30px; min-width: 26px; height: 26px; text-align: center; border-radius: 6px; }
+.fc-heat td.fc-closed { background: var(--closed); color: var(--text-muted); }
+.fc-heat tr.fc-total td { background: none; color: var(--text-secondary); font-weight: 700; }
+
+/* ---- Small layout helpers ---- */
+.page-enter { animation: page-in 0.18s ease-out; }
+@keyframes page-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }

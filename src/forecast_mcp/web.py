@@ -176,9 +176,42 @@ async def api_reset_demo(request: Request) -> Response:
 
 
 async def home(request: Request) -> Response:
+    """Signed-out visitors get the guided welcome; signed-in planners get the app."""
     if settings.auth_enabled and auth.session_user(request) is None:
-        return FileResponse(STATIC / "landing.html")
-    return FileResponse(STATIC / "dashboard.html")
+        return FileResponse(STATIC / "welcome.html")
+    return FileResponse(STATIC / "app.html")
+
+
+async def welcome(request: Request) -> Response:
+    return FileResponse(STATIC / "welcome.html")
+
+
+def _public_facts() -> dict:
+    """Numbers the welcome pages quote: taken from the latest computed forecast, never typed in by hand."""
+    from sqlalchemy import select
+
+    from .db import Run
+
+    with session_scope() as s:
+        run = s.scalars(
+            select(Run).where(Run.status == "done", Run.forecast.isnot(None)).order_by(Run.finished_at.desc()).limit(1)
+        ).first()
+        forecast = run.forecast if run else None
+    if not forecast:
+        return {"available": False}
+    bt = forecast.get("backtest") or {}
+    return {
+        "available": True,
+        "coverage": bt.get("coverage_p10_p90"),
+        "target": bt.get("target_coverage", 0.8),
+        "gates": len(forecast.get("series", [])),
+        "history_days": max((s_["history"].get("days", 0) for s_ in forecast.get("series", [])), default=0),
+        "thin_gates": [s_["gate_name"] for s_ in forecast.get("series", []) if s_["history"].get("thin")],
+    }
+
+
+async def api_facts(request: Request) -> Response:
+    return JSONResponse(await run_in_threadpool(_public_facts))
 
 
 async def privacy(request: Request) -> Response:
@@ -215,7 +248,9 @@ async def dev_tools(request: Request) -> Response:
 def routes() -> list:
     r = [
         Route("/", home),
+        Route("/welcome", welcome),
         Route("/privacy", privacy),
+        Route("/api/facts", api_facts),
         Route("/healthz", health),
         Route("/api/me", api_me),
         Route("/api/events", api_events),

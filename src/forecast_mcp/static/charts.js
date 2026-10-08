@@ -84,19 +84,22 @@
   }
 
   /* ---------- forecast: one card per gate ---------- */
-  function forecastCard(grid, series, yMax, yStep, tooltip, labels) {
-    const card = h("div", { class: "fc-card" }, grid);
-    const head = h("div", { class: "fc-card-head" }, card);
-    h("div", { class: "fc-card-title" }, head, series.gate_name);
-    const meta = h("div", { class: "fc-card-meta" }, head);
-    meta.textContent = `Day ${fmt(series.day_total.p50)} (${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
-    if (series.history && series.history.thin) {
-      const badge = h("div", { class: "fc-badge", title: "Few days of data for this gate" }, card);
-      badge.textContent = `⚠ Thin history: ${series.history.days} days`;
+  function forecastCard(grid, series, yMax, yStep, tooltip, labels, opts) {
+    opts = opts || {};
+    const card = h("div", { class: opts.plain ? "" : "fc-card" }, grid);
+    if (opts.head !== false) {
+      const head = h("div", { class: "fc-card-head" }, card);
+      h("div", { class: "fc-card-title" }, head, series.gate_name);
+      const meta = h("div", { class: "fc-card-meta" }, head);
+      meta.textContent = `About ${fmt(series.day_total.p50)} guests today (likely ${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
+    }
+    if (opts.head !== false && series.history && series.history.thin) {
+      const badge = h("div", { class: "fc-badge", title: "This gate has only a few days of data" }, card);
+      badge.textContent = `Little history: ${series.history.days} days`;
     }
 
     const pts = series.points;
-    const W = 320, H = 132, m = { l: 38, r: 8, t: 10, b: 20 };
+    const W = opts.width || 320, H = opts.height || 132, m = { l: 38, r: 8, t: 10, b: 20 };
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
     const x = (i) => m.l + (pts.length === 1 ? iw / 2 : (i / (pts.length - 1)) * iw);
     const y = (v) => m.t + ih - (v / yMax) * ih;
@@ -117,9 +120,10 @@
       "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, chart);
 
     // Split strip: share of the range's variance from each source, per hour (100% columns).
-    const SH = 34, sm = { t: 3, b: 3 };
-    const strip = svg("svg", { class: "fc-svg", viewBox: `0 0 ${W} ${SH}`, role: "img",
+    const SH = opts.strip === false ? 0 : 34, sm = { t: 3, b: 3 };
+    const strip = svg("svg", { class: "fc-svg", viewBox: `0 0 ${W} ${Math.max(SH, 1)}`, role: "img",
       "aria-label": `${series.gate_name}: share of uncertainty from limited history per hour` }, card);
+    if (opts.strip === false) strip.setAttribute("hidden", "");
     const colW = Math.min(14, (iw / pts.length) - 3);
     const sih = SH - sm.t - sm.b;
     pts.forEach((p, i) => {
@@ -131,7 +135,8 @@
         fill: "var(--series-1)", "fill-opacity": 0.55 }, strip);
       if (hMiss > 0.5) svg("rect", { x: cx, y: sm.t, width: colW, height: hMiss, rx: 2, fill: "var(--series-2)" }, strip);
     });
-    h("div", { class: "fc-strip-label" }, card, `Source of the range per hour: ${labels.missing_history.toLowerCase()} (top) vs. ${labels.volatility.toLowerCase()}`);
+    if (opts.strip !== false) h("div", { class: "fc-strip-label" }, card,
+      `Why it's uncertain, hour by hour: orange = ${labels.missing_history.toLowerCase()}, blue = ${labels.volatility.toLowerCase()}`);
 
     // Hover / keyboard layer shared by both SVGs.
     const cross1 = svg("line", { class: "fc-crosshair", y1: m.t, y2: m.t + ih, visibility: "hidden" }, chart);
@@ -146,8 +151,8 @@
       for (const c of [cross1, cross2]) { c.setAttribute("x1", x(i)); c.setAttribute("x2", x(i)); c.setAttribute("visibility", "visible"); }
       dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(p.p50)); dot.setAttribute("visibility", "visible");
       tooltip.show(cx, cy, `${series.gate_name} · ${p.hour}`, [
-        { name: "Median", value: fmt(p.p50), key: "var(--series-1)" },
-        { name: "80% range", value: `${fmt(p.p10)}–${fmt(p.p90)}` },
+        { name: "Most likely", value: fmt(p.p50), key: "var(--series-1)" },
+        { name: "Likely range (8 in 10 days)", value: `${fmt(p.p10)}–${fmt(p.p90)}` },
         { name: labels.volatility, value: `±${fmt(p.sd_volatility)}`, key: "var(--series-1)", keyShape: "rect" },
         { name: labels.missing_history, value: `±${fmt(p.sd_missing_history)} (${pct(p.share_missing_history)})`, key: "var(--series-2)", keyShape: "rect" },
       ]);
@@ -180,16 +185,12 @@
     const tooltip = Tooltip(root);
     const labels = forecast.uncertainty_labels || { volatility: "Day-to-day variation", missing_history: "Limited history" };
     if (opts.title !== false) {
-      h("div", { class: "fc-h" }, root, "Arrivals per gate and hour");
+      h("div", { class: "fc-h" }, root, "Guests arriving per gate and hour");
       const t = forecast.totals.day;
       h("div", { class: "fc-sub" }, root,
-        `${forecast.date} · ${forecast.unit} · line = median, band = 80% range · whole day ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
+        `${forecast.date} · line = most likely, band = likely range (8 in 10 days) · whole day about ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
     }
-    const legend = h("div", { class: "fc-legend" }, root);
-    const l1 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-1);opacity:.55" }, l1);
-    l1.appendChild(document.createTextNode(`${labels.volatility}: cover with a staffing buffer`));
-    const l2 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-2)" }, l2);
-    l2.appendChild(document.createTextNode(`${labels.missing_history}: ask what the planner knows`));
+    if (opts.legend !== false) uncertaintyLegend(root, labels);
 
     const maxP90 = Math.max(...forecast.series.flatMap((s) => s.points.map((p) => p.p90)));
     const { max, step } = niceMax(maxP90, 4);
@@ -198,12 +199,12 @@
 
     const notes = (forecast.data_notes || []).map((n) => n.text);
     const bt = forecast.backtest;
-    if (bt) notes.push(`Backtest: the 80% ranges contained ${pct(bt.coverage_p10_p90)} of held-out hours (target 80%).`);
-    if (notes.length) {
+    if (bt) notes.push(`Check on past days: the likely ranges contained ${pct(bt.coverage_p10_p90)} of what really happened (aim: 80%).`);
+    if (notes.length && opts.notes !== false) {
       const ul = h("ul", { class: "fc-notes" }, root);
       for (const n of notes) h("li", {}, ul, n);
     }
-    tableToggle(root, "forecast table", (wrap) => {
+    if (opts.table !== false) tableToggle(root, "the numbers", (wrap) => {
       const table = h("table", { class: "fc-table" }, wrap);
       const head = h("tr", {}, h("thead", {}, table));
       for (const c of ["Gate", "Hour", "p10", "Median", "p90", labels.volatility + " ±", labels.missing_history + " ±", "Share limited history"]) h("th", {}, head, c);
@@ -213,6 +214,31 @@
         for (const v of [s.gate_name, p.hour, fmt(p.p10), fmt(p.p50), fmt(p.p90), fmt(p.sd_volatility), fmt(p.sd_missing_history), pct(p.share_missing_history)]) h("td", {}, tr, v);
       }
     });
+  }
+
+  function uncertaintyLegend(root, labels) {
+    const legend = h("div", { class: "fc-legend" }, root);
+    const l1 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-1);opacity:.55" }, l1);
+    l1.appendChild(document.createTextNode(`${labels.volatility}: plan a few extra staff`));
+    const l2 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-2)" }, l2);
+    l2.appendChild(document.createTextNode(`${labels.missing_history}: what you know can help`));
+    return legend;
+  }
+
+  /* One gate, drawn large: the size follows the container so text keeps its real size. */
+  function renderGate(root, forecast, gateId, opts) {
+    opts = opts || {};
+    root.textContent = "";
+    root.classList.add("fc-root");
+    const series = forecast.series.find((s) => s.gate_id === gateId) || forecast.series[0];
+    const labels = forecast.uncertainty_labels || { volatility: "Day-to-day variation", missing_history: "Limited history" };
+    const tooltip = Tooltip(root);
+    if (opts.legend) uncertaintyLegend(root, labels);
+    const width = Math.max(300, Math.min(900, Math.round(root.clientWidth || 640)));
+    const { max, step } = niceMax(Math.max(...series.points.map((p) => p.p90)), 4);
+    forecastCard(root, series, max, step, tooltip, labels,
+      { width, height: opts.height || Math.round(Math.min(280, width * 0.42)), strip: opts.strip !== false, head: false, plain: true });
+    return series;
   }
 
   /* ---------- trade-off: staff cost vs expected wait ---------- */
@@ -225,10 +251,12 @@
     const selected = opts.selectedId;
     const official = opts.official || null;
 
-    h("div", { class: "fc-h" }, root, "Staff cost vs. guest waiting");
-    h("div", { class: "fc-sub" }, root,
-      `${sols.length} plans found by ${result.algorithm.name}. Each dot is a plan; the whisker reaches the wait on a bad day (9 of 10 days are better).` +
-      (opts.editable ? " Click a dot to choose it." : ""));
+    if (opts.title !== false) {
+      h("div", { class: "fc-h" }, root, "Staff cost vs. guest waiting");
+      h("div", { class: "fc-sub" }, root,
+        `Each dot is one staffing plan (${sols.length} in total). Further right costs more; lower means shorter queues. The thin line above a dot shows a bad day.` +
+        (opts.editable ? " Click a dot to choose it." : ""));
+    }
     const legend = h("div", { class: "fc-legend" }, root);
     const a = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-1);border-radius:50%" }, a);
     a.appendChild(document.createTextNode("Plan"));
@@ -332,11 +360,13 @@
   }
 
   /* ---------- staffing schedule heat table ---------- */
-  function renderSchedule(root, solution, result, gates) {
+  function renderSchedule(root, solution, result, gates, opts) {
     root.textContent = "";
     root.classList.add("fc-root");
-    h("div", { class: "fc-h" }, root, `Staffed lanes per gate and hour · plan ${solution.id}`);
-    h("div", { class: "fc-sub" }, root, `${solution.staff_hours} staff-hours. Darker = more of the gate's lanes open. Grey = closed.`);
+    if (!opts || opts.title !== false) {
+      h("div", { class: "fc-h" }, root, `Staffed lanes per gate and hour · plan ${solution.id}`);
+      h("div", { class: "fc-sub" }, root, `${solution.staff_hours} staff-hours. Darker = more of the gate's lanes open. Grey = closed.`);
+    }
     const wrap = h("div", { class: "fc-table-wrap" }, root);
     const table = h("table", { class: "fc-heat" }, wrap);
     const head = h("tr", {}, h("thead", {}, table));
@@ -363,5 +393,5 @@
     for (const t of totals) h("td", {}, tr, t);
   }
 
-  window.FC = { renderForecast, renderTradeoff, renderSchedule, fmt, fmt1, eur, pct, h };
+  window.FC = { renderForecast, renderGate, renderTradeoff, renderSchedule, uncertaintyLegend, fmt, fmt1, eur, pct, h, svg };
 })();

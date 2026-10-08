@@ -317,8 +317,8 @@ def get_scenario_state(scenario_id: str) -> CallToolResult:
 def panel_html() -> str:
     html = (STATIC / "panel.html").read_text(encoding="utf-8")
     charts = (STATIC / "charts.js").read_text(encoding="utf-8")
-    styles = (STATIC / "charts.css").read_text(encoding="utf-8")
-    return html.replace("/*__CHARTS_JS__*/", charts).replace("/*__CHARTS_CSS__*/", styles)
+    styles = (STATIC / "app.css").read_text(encoding="utf-8")
+    return html.replace("/*__CHARTS_JS__*/", charts).replace("/*__APP_CSS__*/", styles)
 
 
 apps.add_html_resource(

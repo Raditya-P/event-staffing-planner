@@ -13,10 +13,26 @@ def client():
 
 
 def test_pages(client):
-    assert "Event forecast" in client.get("/").text
+    # Without sign-in the app opens straight away; the guided welcome is always at /welcome.
+    app_page = client.get("/")
+    assert "Staffing Planner" in app_page.text and "/static/app.js" in app_page.text
+    assert "default-src 'self'" in app_page.headers["content-security-policy"]
+    welcome = client.get("/welcome").text
+    assert "About this prototype" in welcome and "The park is made up" in welcome
+    assert "<script>" not in welcome  # strict CSP: no inline scripts on our own pages
     panel = client.get("/dev/panel.html").text
-    assert "__CHARTS_CSS__" not in panel and "renderForecast" in panel
-    assert client.get("/static/charts.js").status_code == 200
+    assert "__APP_CSS__" not in panel and "__CHARTS_JS__" not in panel and "renderForecast" in panel
+    assert "cupcake-night" in panel  # the website's theme is inlined into the chat panel
+    for asset in ("app.css", "app.js", "charts.js", "welcome.js", "privacy.js"):
+        assert client.get(f"/static/{asset}").status_code == 200
+    assert client.get("/privacy").status_code == 200
+
+
+def test_public_facts_come_from_a_computed_forecast(client):
+    facts = client.get("/api/facts").json()
+    assert facts["available"] is True
+    assert 0 < facts["coverage"] <= 1 and facts["gates"] == 3 and facts["history_days"] == 120
+    assert facts["thin_gates"] == ["East Gate (new car park)"]
 
 
 def test_dashboard_flow(client, event_id):
