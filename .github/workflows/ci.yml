@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,8 +18,12 @@ jobs:
       - run: uv run pytest
 
   docker:
-    # Builds the production image and checks that it starts and serves requests.
+    # Builds the production image, checks that it starts and serves requests, and (on main, once the
+    # registry is connected with deploy/azure.ps1 -ConnectGitHub) uploads it to the Azure registry.
+    needs: test
     runs-on: ubuntu-latest
+    env:
+      ACR: ${{ vars.ACR_LOGIN_SERVER }}
     steps:
       - uses: actions/checkout@v7
       - run: docker build -t forecast-mcp .
@@ -32,3 +37,13 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs app | tail -40
+      - name: Upload to the Azure container registry
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.ACR != ''
+        env:
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          echo "$ACR_PASSWORD" | docker login "$ACR" --username "$ACR_USERNAME" --password-stdin
+          docker tag forecast-mcp "$ACR/forecast-mcp:$GITHUB_SHA"
+          docker push "$ACR/forecast-mcp:$GITHUB_SHA"
+          echo "Uploaded $ACR/forecast-mcp:$GITHUB_SHA"

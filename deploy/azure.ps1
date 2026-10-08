@@ -1,28 +1,32 @@
 <#
 Deploy forecast-mcp to Azure Container Apps (works with an Azure for Students subscription).
 
-    az login                                   # once, in the browser
-    .\deploy\azure.ps1                          # first deploy, and every update afterwards
-    .\deploy\azure.ps1 -EnableSignIn            # once WorkOS values are in .env
+Student subscriptions don't allow Azure to build images (ACR Tasks), so GitHub Actions builds the image after
+the tests pass and pushes it to your Azure registry. This script sets that up and deploys a pushed image.
+
+    az login                                       # once, in the browser
+    .\deploy\azure.ps1 -ConnectGitHub              # once: registry + GitHub secrets, then GitHub builds the image
+    .\deploy\azure.ps1                             # deploy the image of your latest pushed commit (and every update)
+    .\deploy\azure.ps1 -EnableSignIn               # once WorkOS values are in .env
 
 What it creates (in one resource group):
-  - an Azure Container Registry, Basic tier (about USD 5 a month): stores the image; Azure builds it, no local Docker
+  - an Azure Container Registry, Basic tier (about USD 5 a month from the student credit)
   - a Container Apps environment without paid log storage
   - the container app: 0.5 vCPU / 1 GiB, scales to zero when idle (inside the monthly free allowance)
 
-Secrets (DATABASE_URL, OIDC_CLIENT_SECRET, SESSION_SECRET) are read from .env and stored as Container Apps
-secrets. They are never printed and never committed.
+Secrets (DATABASE_URL, OIDC_CLIENT_SECRET, SESSION_SECRET, the registry password) go straight from .env or Azure
+into Azure / GitHub secrets. They are never printed and never committed.
 #>
 param(
     [string]$ResourceGroup = "forecast-mcp-rg",
     # Closest region to the Neon database (Singapore) that Azure for Students subscriptions allow.
     [string]$Location = "malaysiawest",
-    # Where the image registry lives. Azure's cloud build (ACR Tasks) is not offered in Malaysia West, so the
-    # registry sits in East Asia; it is only used when a new image is pulled, so its distance doesn't matter.
-    [string]$RegistryLocation = "eastasia",
     [string]$AppName = "forecast-mcp",
     [string]$EnvironmentName = "forecast-mcp-env",
-    [switch]$EnableSignIn
+    [string]$ImageTag = "",          # default: the commit you have checked out (it must be pushed and built)
+    [switch]$ConnectGitHub,
+    [switch]$EnableSignIn,
+    [switch]$PruneImages             # keep only the 5 newest images in the registry
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,6 +50,13 @@ function az-quiet {
     return ($LASTEXITCODE -eq 0)
 }
 
+function az-try {
+    # The command's output if it succeeds, otherwise $null (used for lookups that may legitimately fail).
+    $ErrorActionPreference = "Continue"
+    $out = & $AzPython -IBm azure.cli @args 2>$null
+    if ($LASTEXITCODE -eq 0) { return $out } else { return $null }
+}
+
 function Read-DotEnv {
     $values = @{}
     if (-not (Test-Path ".env")) { throw "No .env file. Copy .env.example to .env and fill in DATABASE_URL." }
@@ -61,8 +72,65 @@ Step "Checking the Azure login"
 if (-not (az-quiet account show --output none)) { throw "Not logged in. Run: az login" }
 $sub = az account show --query "{name:name, id:id}" --output json | ConvertFrom-Json
 Write-Host "Subscription: $($sub.name)"
-# Globally unique and stable per subscription; the region code keeps names distinct if the registry ever moves.
-$Registry = ("fmcp" + ($sub.id -replace '-', '').Substring(0, 12) + ($RegistryLocation -replace '[^a-z]', '').Substring(0, 2)).ToLower()
+
+Step "Checking that $Location is allowed"
+$allowed = az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" --output json | ConvertFrom-Json
+if ($allowed -and ($allowed -notcontains $Location)) {
+    throw "Your subscription only allows these regions: $($allowed -join ', '). Run again with -Location <one of them>."
+}
+
+Step "Preparing the subscription (one-time, can take a minute)"
+az extension add --name containerapp --upgrade --only-show-errors
+foreach ($ns in "Microsoft.App", "Microsoft.ContainerRegistry") { az provider register --namespace $ns --wait --output none }
+
+Step "Resource group $ResourceGroup"
+# A resource group's own location is only metadata; an existing group is kept wherever it is.
+if ((az group exists --name $ResourceGroup).Trim() -ne "true") {
+    az group create --name $ResourceGroup --location $Location --output none
+}
+
+# Reuse an existing registry (preferably next to the app); create one only if the group has none.
+$Registry = "$(az acr list --resource-group $ResourceGroup --query "[?location=='$Location'].name | [0]" --output tsv)".Trim()
+if (-not $Registry) { $Registry = "$(az acr list --resource-group $ResourceGroup --query "[0].name" --output tsv)".Trim() }
+if (-not $Registry) {
+    $Registry = ("fmcp" + ($sub.id -replace '-', '').Substring(0, 12) + ($Location -replace '[^a-z]', '').Substring(0, 2)).ToLower()
+}
+Step "Container registry $Registry"
+if (-not (az-quiet acr show --name $Registry --resource-group $ResourceGroup --output none)) {
+    az acr create --name $Registry --resource-group $ResourceGroup --location $Location --sku Basic --admin-enabled true --output none
+}
+$others = az acr list --resource-group $ResourceGroup --query "[?name!='$Registry'].name" --output tsv
+if ($others) {
+    Write-Warning "Unused registries still cost about USD 5 a month each: $($others -join ', '). Delete one with: az acr delete --name <name> --resource-group $ResourceGroup --yes"
+}
+$LoginServer = "$Registry.azurecr.io"
+
+if ($ConnectGitHub) {
+    Step "Letting GitHub Actions push images to $LoginServer"
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI (gh) not found." }
+    $creds = az acr credential show --name $Registry --query "{u:username, p:passwords[0].value}" --output json | ConvertFrom-Json
+    gh variable set ACR_LOGIN_SERVER --body $LoginServer
+    if ($LASTEXITCODE -ne 0) { throw "Could not store the GitHub variable (is gh logged in?)" }
+    gh secret set ACR_USERNAME --body $creds.u
+    if ($LASTEXITCODE -ne 0) { throw "Could not store ACR_USERNAME in GitHub" }
+    gh secret set ACR_PASSWORD --body $creds.p
+    if ($LASTEXITCODE -ne 0) { throw "Could not store ACR_PASSWORD in GitHub" }
+    Write-Host "Stored ACR_LOGIN_SERVER (variable) and ACR_USERNAME / ACR_PASSWORD (secrets) in the GitHub repository."
+    gh workflow run tests --ref main
+    if ($LASTEXITCODE -ne 0) { throw "Could not start the GitHub workflow; push a commit to main instead." }
+    Write-Host "Started the GitHub workflow. When it finishes (about 5 minutes; see: gh run list), run .\deploy\azure.ps1"
+    exit 0
+}
+
+if (-not $ImageTag) { $ImageTag = (git rev-parse HEAD).Trim() }
+$image = "$LoginServer/forecast-mcp:$ImageTag"
+Step "Looking for the image of commit $($ImageTag.Substring(0, 7)) in the registry"
+$tagsJson = az-try acr repository show-tags --name $Registry --repository forecast-mcp --output json
+$tags = if ($tagsJson) { ($tagsJson -join "`n") | ConvertFrom-Json } else { @() }
+if ($tags -notcontains $ImageTag) {
+    throw ("The image for this commit is not in the registry yet. Push your commits (git push) and wait for the GitHub " +
+           "'tests' workflow to pass (gh run list); it builds and uploads the image. First time? Run with -ConnectGitHub.")
+}
 
 $dotenv = Read-DotEnv
 if (-not $dotenv["DATABASE_URL"]) { throw "DATABASE_URL is empty in .env" }
@@ -78,39 +146,6 @@ if ($EnableSignIn) {
         if (-not $dotenv[$k]) { throw "-EnableSignIn needs $k in .env" }
     }
 }
-
-Step "Checking that $Location is allowed"
-$allowed = az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" --output json | ConvertFrom-Json
-foreach ($loc in $Location, $RegistryLocation) {
-    if ($allowed -and ($allowed -notcontains $loc)) {
-        throw "Your subscription only allows these regions: $($allowed -join ', '). '$loc' is not one of them."
-    }
-}
-
-Step "Preparing the subscription (one-time, can take a minute)"
-az extension add --name containerapp --upgrade --only-show-errors
-foreach ($ns in "Microsoft.App", "Microsoft.ContainerRegistry") { az provider register --namespace $ns --wait --output none }
-
-Step "Resource group $ResourceGroup"
-# A resource group's own location is only metadata; an existing group is kept wherever it is.
-if ((az group exists --name $ResourceGroup).Trim() -ne "true") {
-    az group create --name $ResourceGroup --location $Location --output none
-}
-
-Step "Container registry $Registry in $RegistryLocation"
-$others = az acr list --resource-group $ResourceGroup --query "[?name!='$Registry'].name" --output tsv
-if ($others) {
-    Write-Warning "Other registries in this group still cost about USD 5 a month each: $($others -join ', '). Delete unused ones with: az acr delete --name <name> --resource-group $ResourceGroup"
-}
-if (-not (az-quiet acr show --name $Registry --resource-group $ResourceGroup --output none)) {
-    az acr create --name $Registry --resource-group $ResourceGroup --location $RegistryLocation --sku Basic --admin-enabled true --output none
-}
-
-$tag = (git rev-parse --short HEAD).Trim()
-if (git status --porcelain) { $tag = "$tag-dirty-$(Get-Date -Format yyyyMMddHHmm)" }
-$image = "$Registry.azurecr.io/forecast-mcp:$tag"
-Step "Building $image in Azure (takes a few minutes the first time)"
-az acr build --registry $Registry --image "forecast-mcp:$tag" --file Dockerfile . --output none
 
 Step "Container Apps environment $EnvironmentName"
 if (-not (az-quiet containerapp env show --name $EnvironmentName --resource-group $ResourceGroup --output none)) {
@@ -134,10 +169,10 @@ if ($EnableSignIn) {
 }
 
 $creds = az acr credential show --name $Registry --query "{u:username, p:passwords[0].value}" --output json | ConvertFrom-Json
-Step "Container app $AppName"
+Step "Container app $AppName (image $($ImageTag.Substring(0, 7)))"
 if (-not (az-quiet containerapp show --name $AppName --resource-group $ResourceGroup --output none)) {
     az containerapp create --name $AppName --resource-group $ResourceGroup --environment $EnvironmentName `
-        --image $image --registry-server "$Registry.azurecr.io" --registry-username $creds.u --registry-password $creds.p `
+        --image $image --registry-server $LoginServer --registry-username $creds.u --registry-password $creds.p `
         --target-port 8000 --ingress external --min-replicas 0 --max-replicas 1 --cpu 0.5 --memory 1.0Gi `
         --secrets @secrets --env-vars @envVars --output none
 } else {
@@ -149,6 +184,12 @@ if (-not (az-quiet containerapp show --name $AppName --resource-group $ResourceG
 $fqdn = (az containerapp show --name $AppName --resource-group $ResourceGroup --query "properties.configuration.ingress.fqdn" --output tsv).Trim()
 $url = "https://$fqdn"
 az containerapp update --name $AppName --resource-group $ResourceGroup --set-env-vars "PUBLIC_BASE_URL=$url" --output none
+
+if ($PruneImages) {
+    Step "Removing old images (keeping the 5 newest)"
+    $old = az acr repository show-tags --name $Registry --repository forecast-mcp --orderby time_desc --output json | ConvertFrom-Json | Select-Object -Skip 5
+    foreach ($t in $old) { if ($t -ne $ImageTag) { az acr repository delete --name $Registry --image "forecast-mcp:$t" --yes --output none } }
+}
 
 Step "Done"
 Write-Host "Dashboard:    $url/"
