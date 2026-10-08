@@ -67,6 +67,20 @@ Settings: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET
 
 The server is one always-on process: web server, MCP endpoint and a background worker for forecast and optimization runs. The `Dockerfile` builds it for any container host. Pick a region close to your Neon database (yours is in Singapore, `ap-southeast-1`). Set the environment variables from `.env.example` in the host's dashboard, with `ENV=production`.
 
+### Deploy on Azure Container Apps (Azure for Students, no card)
+
+`deploy/azure.ps1` creates a resource group, a Basic container registry (about USD 5 a month from the student credit) and a Container Apps environment and app in Southeast Asia. The app scales to zero when idle, which keeps it inside the monthly free allowance. Azure builds the image, so you don't need Docker. Secrets are read from `.env` and stored as Container Apps secrets.
+
+```bash
+az login
+```
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\deployzure.ps1
+```
+
+Run the same command again to deploy an update. After WorkOS is set up and its values are in `.env`, add `-EnableSignIn`. If your subscription doesn't allow Southeast Asia, pass `-Location <region>`.
+
 ### Deploy on Render (free) with WorkOS sign-in
 
 `render.yaml` describes the whole service: free plan, Singapore region (next to Neon), the light engine profile and sign-in switched on. GitHub Actions also builds the Docker image and smoke-tests it on every push. Render deploys a commit only after those checks pass.
