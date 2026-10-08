@@ -76,7 +76,7 @@ az login
 ```
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .\deployzure.ps1
+powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1
 ```
 
 Run the same command again to deploy an update. After WorkOS is set up and its values are in `.env`, add `-EnableSignIn`. If your subscription doesn't allow Southeast Asia, pass `-Location <region>`.
