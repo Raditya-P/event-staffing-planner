@@ -4,87 +4,152 @@
 @source "../static/*.html";
 @source "../static/*.js";
 
+/* IBM Plex Sans (SIL Open Font License, static/fonts/OFL.txt), served from this site; inlined into the chat panel. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/static/fonts/ibm-plex-sans-latin-wght.woff2") format("woff2");
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 @plugin "./daisyui.mjs" {
-  themes: cupcake --default;
+  themes: false;
   logs: false;
 }
 
-/* Soft dark companion to cupcake: dim's calm surfaces with cupcake's teal, pink and amber. */
+/* "Earth": warm sand background, off-white cards, deep teal, terracotta and ochre accents.
+   Every text/background pair is at least 4.5:1; white text only sits on the deep colours. */
 @plugin "./daisyui-theme.mjs" {
-  name: "cupcake-night";
-  default: false;
-  prefersdark: true;
-  color-scheme: dark;
-  --color-base-100: oklch(30.857% 0.023 264.149);
-  --color-base-200: oklch(28.036% 0.019 264.182);
-  --color-base-300: oklch(26.346% 0.018 262.177);
-  --color-base-content: oklch(90% 0.02 240);
-  --color-primary: oklch(78% 0.12 182);
-  --color-primary-content: oklch(22% 0.05 188);
-  --color-secondary: oklch(80% 0.09 345);
-  --color-secondary-content: oklch(25% 0.08 350);
-  --color-accent: oklch(84% 0.11 75);
-  --color-accent-content: oklch(26% 0.06 50);
-  --color-neutral: oklch(24.731% 0.02 264.094);
-  --color-neutral-content: oklch(88% 0.02 240);
-  --color-info: oklch(78% 0.12 230);
-  --color-info-content: oklch(20% 0.05 240);
-  --color-success: oklch(80% 0.13 162);
-  --color-success-content: oklch(20% 0.05 170);
-  --color-warning: oklch(84% 0.14 86);
-  --color-warning-content: oklch(24% 0.06 60);
-  --color-error: oklch(76% 0.13 20);
-  --color-error-content: oklch(20% 0.06 20);
-  --radius-selector: 1rem;
-  --radius-field: 2rem;
-  --radius-box: 1rem;
+  name: "earth";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: oklch(98.5% 0.008 90);
+  --color-base-200: oklch(94.5% 0.03 88);
+  --color-base-300: oklch(86% 0.045 82);
+  --color-base-content: oklch(27% 0.025 60);
+  --color-primary: oklch(43% 0.075 200);
+  --color-primary-content: oklch(98% 0.01 200);
+  --color-secondary: oklch(50% 0.12 42);
+  --color-secondary-content: oklch(98% 0.01 60);
+  --color-accent: oklch(70% 0.12 80);
+  --color-accent-content: oklch(25% 0.04 60);
+  --color-neutral: oklch(33% 0.03 60);
+  --color-neutral-content: oklch(96% 0.01 85);
+  --color-info: oklch(52% 0.09 235);
+  --color-info-content: oklch(98% 0.01 235);
+  --color-success: oklch(50% 0.1 150);
+  --color-success-content: oklch(98% 0.01 150);
+  --color-warning: oklch(74% 0.14 75);
+  --color-warning-content: oklch(26% 0.05 60);
+  --color-error: oklch(50% 0.16 27);
+  --color-error-content: oklch(98% 0.01 27);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
-  --border: 2px;
+  --border: 1px;
   --depth: 1;
   --noise: 0;
 }
 
-/* ---- Chart tokens (validated for colour-blind separation and 3:1 contrast on each theme's surface) ---- */
-:root, [data-theme="cupcake"] {
-  --series-1: #007fa6;  /* blue-teal: the forecast, day-to-day variation, plans */
-  --series-2: #d76821;  /* amber: limited history */
-  --seq-1: oklch(94% 0.03 225); --seq-2: oklch(86% 0.06 225); --seq-3: oklch(76% 0.09 225);
-  --seq-4: oklch(64% 0.11 225); --seq-5: oklch(54% 0.12 225); --seq-6: oklch(44% 0.11 228);
-  --seq-ink-light: var(--color-base-content); --seq-ink-dark: #ffffff;
+/* Dark counterpart, used only by the chat panel when Claude is in dark mode. */
+@plugin "./daisyui-theme.mjs" {
+  name: "earth-dark";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+  --color-base-100: oklch(27% 0.015 70);
+  --color-base-200: oklch(23% 0.013 70);
+  --color-base-300: oklch(38% 0.02 72);
+  --color-base-content: oklch(92% 0.015 85);
+  --color-primary: oklch(70% 0.08 200);
+  --color-primary-content: oklch(20% 0.03 200);
+  --color-secondary: oklch(70% 0.11 45);
+  --color-secondary-content: oklch(22% 0.04 45);
+  --color-accent: oklch(80% 0.11 82);
+  --color-accent-content: oklch(25% 0.04 60);
+  --color-neutral: oklch(38% 0.02 70);
+  --color-neutral-content: oklch(94% 0.01 85);
+  --color-info: oklch(72% 0.09 235);
+  --color-info-content: oklch(20% 0.03 235);
+  --color-success: oklch(72% 0.11 150);
+  --color-success-content: oklch(20% 0.04 150);
+  --color-warning: oklch(80% 0.13 78);
+  --color-warning-content: oklch(24% 0.05 60);
+  --color-error: oklch(70% 0.14 27);
+  --color-error-content: oklch(20% 0.05 27);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
 }
-[data-theme="cupcake-night"] {
-  --series-1: #1aa1c9;
-  --series-2: #dd7438;
-  --seq-1: oklch(36% 0.04 225); --seq-2: oklch(44% 0.07 225); --seq-3: oklch(52% 0.09 225);
-  --seq-4: oklch(62% 0.11 225); --seq-5: oklch(72% 0.11 225); --seq-6: oklch(82% 0.08 225);
-  --seq-ink-light: var(--color-base-content); --seq-ink-dark: oklch(20% 0.03 240);
+
+/* ---- Chart tokens (validated for colour-blind separation and 3:1 contrast on each theme's card colour) ---- */
+:root, [data-theme="earth"] {
+  --series-1: #006e95;  /* deep blue: the forecast, day-to-day variation, plans */
+  --series-2: #ba5d1d;  /* burnt orange: limited history */
+  /* staffing heat cells: light to dark blue, with the text colour chosen per step for 4.5:1 */
+  --seq-1: oklch(95% 0.02 225); --seq-2: oklch(88% 0.045 225); --seq-3: oklch(79% 0.07 225);
+  --seq-4: oklch(69% 0.09 225); --seq-5: oklch(52% 0.1 228); --seq-6: oklch(42% 0.09 230);
+  --seq-ink-1: var(--color-base-content); --seq-ink-2: var(--color-base-content); --seq-ink-3: var(--color-base-content);
+  --seq-ink-4: var(--color-base-content); --seq-ink-5: #ffffff; --seq-ink-6: #ffffff;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --series-1: #1aa1c9;
-    --series-2: #dd7438;
-    --seq-1: oklch(36% 0.04 225); --seq-2: oklch(44% 0.07 225); --seq-3: oklch(52% 0.09 225);
-    --seq-4: oklch(62% 0.11 225); --seq-5: oklch(72% 0.11 225); --seq-6: oklch(82% 0.08 225);
-    --seq-ink-light: var(--color-base-content); --seq-ink-dark: oklch(20% 0.03 240);
-  }
+[data-theme="earth-dark"] {
+  --series-1: #3e9ec5;
+  --series-2: #d47636;
+  --seq-1: oklch(33% 0.03 225); --seq-2: oklch(40% 0.05 225); --seq-3: oklch(47% 0.07 225);
+  --seq-4: oklch(66% 0.09 225); --seq-5: oklch(75% 0.08 225); --seq-6: oklch(84% 0.06 225);
+  --seq-ink-1: var(--color-base-content); --seq-ink-2: var(--color-base-content); --seq-ink-3: var(--color-base-content);
+  --seq-ink-4: oklch(20% 0.02 225); --seq-ink-5: oklch(20% 0.02 225); --seq-ink-6: oklch(20% 0.02 225);
 }
 :root {
   --surface-1: var(--color-base-100);
   --surface-2: var(--color-base-200);
   --text-primary: var(--color-base-content);
-  --text-secondary: color-mix(in oklab, var(--color-base-content) 78%, transparent);
-  --text-muted: color-mix(in oklab, var(--color-base-content) 62%, transparent);
-  --axis-ink: color-mix(in oklab, var(--color-base-content) 58%, transparent);
-  --grid: color-mix(in oklab, var(--color-base-content) 10%, transparent);
-  --baseline: color-mix(in oklab, var(--color-base-content) 28%, transparent);
-  --border: color-mix(in oklab, var(--color-base-content) 12%, transparent);
-  --closed: var(--color-base-300);
-  --accent: var(--color-primary-content);
-  --warn-bg: color-mix(in oklab, var(--color-warning) 30%, var(--color-base-100));
-  --warn-ink: var(--color-warning-content);
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-secondary: color-mix(in oklab, var(--color-base-content) 80%, transparent);
+  --text-muted: color-mix(in oklab, var(--color-base-content) 66%, transparent);
+  --axis-ink: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+  --grid: color-mix(in oklab, var(--color-base-content) 11%, transparent);
+  --baseline: color-mix(in oklab, var(--color-base-content) 35%, transparent);
+  --fc-line: var(--color-base-300);
+  --outline: color-mix(in oklab, var(--color-base-300), var(--color-base-content) 22%);
+  --closed: var(--color-base-200);
+  --accent: var(--color-primary);
+  --warn-bg: color-mix(in oklab, var(--color-warning) 28%, var(--color-base-100));
+  --warn-ink: var(--color-base-content);
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+
+/* ---- Outlines: give cards, panels, buttons and fields a clear edge ---- */
+.card, .stats, .collapse, .list, .modal-box, .tabs-box, .fc-card { border: 1px solid var(--outline); }
+.btn:not(.btn-ghost):not(.btn-link) { --btn-border: color-mix(in oklab, var(--btn-color, var(--color-base-300)), #000 24%); }
+.input, .select, .textarea { --input-color: color-mix(in oklab, var(--color-base-content) 34%, #0000); }
+.alert { border-color: color-mix(in oklab, currentColor 28%, transparent); }
+.badge-ghost, .badge-soft { border-color: color-mix(in oklab, currentColor 30%, transparent); }
+.steps .step::after { box-shadow: 0 0 0 1px var(--outline); }
+.menu .menu-active { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-neutral), #000 20%); }
+.tabs-box .tab-active { box-shadow: 0 0 0 1px var(--outline); }
+/* daisyUI fades stat labels and unselected tabs to 50-60%, below 4.5:1 on tinted backgrounds. */
+.stat-title, .stat-desc, .table :where(thead, tfoot) { color: var(--text-secondary); }
+.tabs .tab:not(.tab-active):not([disabled]) { color: var(--text-secondary); }
+.tabs .tab:not(.tab-active):not([disabled]):hover { color: var(--color-base-content); }
+
+/* Soft and outline styles print their text in the status colour. Warning and accent are light shades
+   (filled, they carry dark text), so on the light theme their text gets a deep version for 4.5:1. */
+:root:not([data-theme="earth-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-warning,
+:root:not([data-theme="earth-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-warning { color: oklch(42% 0.1 62); }
+:root:not([data-theme="earth-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-accent,
+:root:not([data-theme="earth-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-accent { color: oklch(42% 0.08 75); }
 
 /* ---- Charts (SVG drawn by charts.js) ---- */
 [hidden] { display: none !important; }
@@ -94,15 +159,16 @@
 .fc-sub { font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 10px; }
 .fc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 10px; }
 .fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.fc-key-rect { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.fc-key-rect { width: 11px; height: 11px; border-radius: 3px; display: inline-block; box-shadow: 0 0 0 1px var(--outline); }
 .fc-key-line { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
 .fc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
-.fc-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-box); padding: 12px 14px 10px; min-width: 0; }
-.fc-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.fc-card { background: var(--surface-1); border-radius: var(--radius-box); padding: 12px 14px 10px; min-width: 0; }
+.fc-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; }
 .fc-card-title { font-weight: 700; font-size: 0.9rem; }
 .fc-card-meta { font-size: 0.8rem; color: var(--text-secondary); }
-.fc-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); }
-.fc-strip-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+.fc-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+  background: var(--warn-bg); color: var(--warn-ink); border: 1px solid color-mix(in oklab, var(--color-warning), #000 20%); }
+.fc-strip-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
 svg.fc-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .fc-svg text { font-family: var(--font); font-size: 10px; fill: var(--axis-ink); font-variant-numeric: tabular-nums; }
 .fc-svg .fc-label { fill: var(--text-secondary); font-size: 10.5px; }
@@ -116,7 +182,7 @@ svg.fc-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .fc-point { cursor: pointer; outline: none; }
 .fc-point:focus-visible .fc-ring { stroke: var(--series-1); stroke-width: 2.5; }
 .fc-tooltip { position: absolute; z-index: 30; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
-  border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  border: 1px solid var(--outline); border-radius: 10px; padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 24px rgb(40 30 20 / 0.16);
   min-width: 170px; max-width: 260px; display: none; }
 .fc-tooltip .fc-tt-title { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
 .fc-tooltip .fc-tt-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
@@ -125,7 +191,7 @@ svg.fc-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .fc-notes { margin: 10px 0 0; padding: 0; list-style: none; font-size: 0.82rem; color: var(--text-secondary); }
 .fc-notes li { margin: 3px 0; padding-left: 14px; position: relative; }
 .fc-notes li::before { content: "•"; position: absolute; left: 2px; color: var(--text-muted); }
-.fc-table-toggle { font: inherit; font-size: 0.8rem; background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.fc-table-toggle { font: inherit; font-size: 0.8rem; background: none; border: none; color: var(--accent); cursor: pointer; padding: 6px 0 0; text-decoration: underline; }
 .fc-table-wrap { overflow-x: auto; margin-top: 6px; }
 table.fc-table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; width: 100%; }
 .fc-table th, .fc-table td { padding: 4px 6px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
@@ -133,10 +199,10 @@ table.fc-table { border-collapse: collapse; font-size: 12px; font-variant-numeri
 .fc-table th { color: var(--text-secondary); font-weight: 700; }
 table.fc-heat { border-collapse: separate; border-spacing: 3px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .fc-heat th { font-weight: 500; color: var(--text-muted); padding: 0 2px; text-align: center; }
-.fc-heat th.fc-row-head { text-align: left; color: var(--text-secondary); padding-right: 6px; white-space: nowrap; }
-.fc-heat td { width: 30px; min-width: 26px; height: 26px; text-align: center; border-radius: 6px; }
+.fc-heat th.fc-row-head { text-align: left; color: var(--text-secondary); padding-right: 8px; white-space: nowrap; }
+.fc-heat td { width: 30px; min-width: 26px; height: 26px; text-align: center; border-radius: 6px; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-base-content) 12%, transparent); }
 .fc-heat td.fc-closed { background: var(--closed); color: var(--text-muted); }
-.fc-heat tr.fc-total td { background: none; color: var(--text-secondary); font-weight: 700; }
+.fc-heat tr.fc-total td { background: none; color: var(--text-secondary); font-weight: 700; box-shadow: none; }
 
 /* ---- Small layout helpers ---- */
 .page-enter { animation: page-in 0.18s ease-out; }

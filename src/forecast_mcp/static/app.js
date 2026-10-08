@@ -269,10 +269,10 @@
       const b = h("div", { class: "card-body flex-col gap-3 sm:flex-row sm:items-center" }, c);
       const t = h("div", { class: "flex-1" }, b);
       h("h2", { class: "card-title" }, t, "New here? Take the 2-minute tour");
-      h("p", {}, t, "Seven short steps show you how to read the charts and make a plan.");
+      h("p", { class: "mt-1" }, t, "Seven short steps show you how to read the charts and make a plan.");
       const a = h("div", { class: "card-actions" }, b);
       link(a, "Start the tour", "#/tour/1", "btn");
-      btn(a, "Skip", "btn-ghost", () => { store.set("fm-tour-done", "1"); render(true); });
+      btn(a, "Skip", "btn-ghost text-primary-content hover:bg-primary-content/10", () => { store.set("fm-tour-done", "1"); render(true); });
     }
 
     if (ev.pending.length) {
@@ -546,7 +546,7 @@
         const txt = h("div", { class: "list-col-grow" }, li);
         h("div", { class: "font-semibold" }, txt, c.readback);
         if (c.note) h("div", { class: "text-sm italic text-base-content/70" }, txt, `“${c.note.text}”`);
-        h("div", { class: "text-xs text-base-content/60" }, txt, c.proposed_via === "chat" ? "From Claude, confirmed by you" : "Added on the website");
+        h("div", { class: "text-xs text-base-content/70" }, txt, c.proposed_via === "chat" ? "From Claude, confirmed by you" : "Added on the website");
         btn(li, "Remove", "btn-sm btn-ghost", () => act(() => api(`/api/constraints/${c.id}`, { method: "DELETE" }), "Removed. Recalculating."));
       }
       const foot = h("div", { class: "card-actions" }, body);
@@ -561,7 +561,7 @@
       const t = h("div", { class: "flex items-center gap-2" }, b);
       h("h3", { class: "card-title text-base" }, t, sc.kind === "official" ? "Official plan" : sc.name);
       h("span", { class: `badge badge-sm ${sc.kind === "official" ? "badge-primary" : "badge-secondary"}` }, t, sc.kind === "official" ? "Official" : "What-if");
-      h("p", { class: "text-xs text-base-content/60" }, b, sc.created_via === "system" ? "Created automatically" : `Started ${sc.created_via === "dashboard" ? "on the website" : "in Claude"}`);
+      h("p", { class: "text-xs text-base-content/70" }, b, sc.created_via === "system" ? "Created automatically" : `Started ${sc.created_via === "dashboard" ? "on the website" : "in Claude"}`);
       const a = h("div", { class: "card-actions justify-end" }, b);
       if (sc.id !== S.scenarioId) btn(a, "Look at it", "btn-sm", () => setScenario(sc.id));
       else h("span", { class: "badge badge-ghost" }, a, "You are looking at this");
@@ -577,7 +577,7 @@
     if (!pending.length) {
       const b = card(root);
       const row = h("div", { class: "flex items-center gap-4" }, b);
-      const ic = h("div", { class: "flex size-12 shrink-0 items-center justify-center rounded-full bg-success/30" }, row);
+      const ic = h("div", { class: "flex size-12 shrink-0 items-center justify-center rounded-full bg-success/15" }, row);
       ic.appendChild(icon("check", "size-6"));
       const t = h("div", {}, row);
       h("h2", { class: "font-bold" }, t, "Nothing waiting");
@@ -587,10 +587,10 @@
     for (const c of pending) {
       const b = card(root);
       if (c.note) {
-        h("div", { class: "text-xs font-semibold uppercase text-base-content/60" }, b, "You said");
+        h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "You said");
         h("blockquote", { class: "border-l-4 border-secondary pl-3 italic" }, b, `“${c.note.text}”`);
       }
-      h("div", { class: "text-xs font-semibold uppercase text-base-content/60" }, b, "Understood as");
+      h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Understood as");
       h("p", { class: "font-semibold" }, b, c.readback);
       if (c.interpretation && c.interpretation !== c.readback) h("p", { class: "text-sm text-base-content/75" }, b, c.interpretation);
       if (c.assumptions.length) {
@@ -644,7 +644,7 @@
         const txt = h("div", { class: "list-col-grow" }, li);
         h("div", { class: "font-semibold" }, txt, historySentence(r));
         const who = r.actor === (S.me && S.me.name) ? "You" : r.actor;
-        h("div", { class: "text-xs text-base-content/60" }, txt, `${who} · ${WHERE[r.channel] || r.channel} · ${new Date(r.at).toLocaleString()}`);
+        h("div", { class: "text-xs text-base-content/70" }, txt, `${who} · ${WHERE[r.channel] || r.channel} · ${new Date(r.at).toLocaleString()}`);
       }
     }).catch((e) => { box.textContent = ""; toast(e.message, "error"); });
   }
@@ -678,7 +678,7 @@
   function tourPark(b) {
     const grid = h("div", { class: "grid gap-3 sm:grid-cols-3" }, b);
     const fc = S.scenario.forecast;
-    const colors = ["bg-primary/40", "bg-secondary/50", "bg-accent/60"];
+    const colors = ["bg-primary/12", "bg-secondary/12", "bg-accent/18"];
     S.event.gates.forEach((g, i) => {
       const c = h("div", { class: `card ${colors[i % 3]}` }, grid);
       const cb = h("div", { class: "card-body p-4 gap-1" }, c);
@@ -720,8 +720,9 @@
   function tourClaude(b) {
     claudeBox(b);
   }
-  function claudeBox(b) {
-    const ol = h("ol", { class: "list-decimal space-y-2 pl-5" }, b);
+  function claudeBox(parent) {
+    const b = h("div", { class: "space-y-4" }, parent);
+    const ol = h("ol", { class: "list-decimal space-y-3 pl-5" }, b);
     h("li", {}, ol, "In Claude, open Settings, then Connectors, and add a custom connector.");
     const li = h("li", {}, ol);
     li.appendChild(document.createTextNode("Paste this address:"));
@@ -731,22 +732,22 @@
       try { await navigator.clipboard.writeText(S.me.mcp_url); copy.textContent = "Copied"; } catch (e) { input.select(); }
       setTimeout(() => { copy.textContent = "Copy"; }, 1500);
     });
-    h("li", {}, ol, "Sign in when Claude asks, then try one of these:");
-    const ex = h("div", { class: "flex flex-wrap gap-2" }, b);
+    const last = h("li", {}, ol, "Sign in when Claude asks, then try one of these:");
+    const ex = h("div", { class: "mt-2 flex flex-wrap gap-2" }, last);
     for (const q of ["Show me the forecast for Halloween Night", "Roadworks close the north road from 5 to 8 pm", "What does the balanced plan cost?"]) h("span", { class: "badge badge-soft badge-secondary h-auto py-1" }, ex, q);
-    h("p", { class: "text-sm text-base-content/60" }, b, "Custom connectors need a paid Claude plan.");
+    h("p", { class: "text-sm text-base-content/70" }, b, "Custom connectors need a paid Claude plan.");
   }
 
   function pageTour(root, arg) {
     const n = Math.max(1, Math.min(TOUR.length, Number(arg) || 1));
     const step = TOUR[n - 1];
-    const steps = h("ul", { class: "steps w-full text-xs" }, root);
+    const steps = h("ul", { class: "steps w-full text-xs *:min-w-0" }, root);
     TOUR.forEach((t, i) => {
       const li = h("li", { class: `step ${i < n ? "step-primary" : ""}`.trim(), "data-content": String(i + 1) }, steps);
       li.setAttribute("aria-label", t.title);
     });
     const b = card(root);
-    h("div", { class: "text-sm text-base-content/60" }, b, `Step ${n} of ${TOUR.length}`);
+    h("div", { class: "text-sm text-base-content/70" }, b, `Step ${n} of ${TOUR.length}`);
     h("h1", { class: "text-2xl font-bold" }, b, step.title);
     for (const p of step.text) h("p", { class: "text-base-content/85" }, b, p);
     const vis = h("div", { class: "mt-2" }, b);
@@ -771,7 +772,7 @@
       h("div", { class: "flex size-10 shrink-0 items-center justify-center rounded-full bg-accent font-bold text-accent-content" }, b, String(i + 1));
       const t_ = h("div", {}, b);
       h("h2", { class: "font-bold" }, t_, t.title);
-      h("p", { class: "text-sm text-base-content/70" }, t_, t.text[0]);
+      h("p", { class: "mt-1 text-sm text-base-content/70" }, t_, t.text[0]);
     });
     const more = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
     for (const [href, title, text] of [["#/about", "About this prototype", "What is real here, what is made up, and what this research tests."],
@@ -800,10 +801,10 @@
     const days = fc ? Math.max(...fc.series.map((s) => s.history.days)) : 120;
     const cov = fc && fc.backtest ? `${pct(fc.backtest.coverage_p10_p90)} of what really happened (the aim is 80%)` : "close to the aim of 80%";
     for (const [title, text, cls] of [
-      ["The park is made up", `Parkland Theme Park, its entrances and ${days} days of visitor history are invented. They are built to behave like real arrivals: busy mornings, an evening rush before the show, quieter rainy days, and one brand-new entrance.`, "bg-secondary/30"],
-      ["The numbers are really calculated", "Nothing on screen is faked or typed in. Every forecast and every staffing plan is worked out live from that history by a forecasting model and an optimization algorithm.", "bg-primary/30"],
-      ["The forecast is checked", `On past days it had not seen, the forecast's likely ranges contained ${cov}. So its sense of its own uncertainty is about right.`, "bg-accent/40"],
-      ["The methods are simple stand-ins", "The forecasting model and the optimization algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.", "bg-info/20"],
+      ["The park is made up", `Parkland Theme Park, its entrances and ${days} days of visitor history are invented. They are built to behave like real arrivals: busy mornings, an evening rush before the show, quieter rainy days, and one brand-new entrance.`, "bg-secondary/12"],
+      ["The numbers are really calculated", "Nothing on screen is faked or typed in. Every forecast and every staffing plan is worked out live from that history by a forecasting model and an optimization algorithm.", "bg-primary/12"],
+      ["The forecast is checked", `On past days it had not seen, the forecast's likely ranges contained ${cov}. So its sense of its own uncertainty is about right.`, "bg-accent/18"],
+      ["The methods are simple stand-ins", "The forecasting model and the optimization algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.", "bg-info/12"],
     ]) {
       const c = h("div", { class: `card ${cls}` }, grid);
       const b = h("div", { class: "card-body" }, c);
