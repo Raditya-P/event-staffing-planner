@@ -81,6 +81,7 @@
 
   // Poll one number; refetch only when something changed (here, in Claude, or in another tab).
   async function poll() {
+    if (document.hidden) { setTimeout(poll, 2000); return; }  // background tab: don't keep the database awake
     try {
       if (state.eventId) {
         const { revision } = await api(`/api/events/${state.eventId}/revision`);

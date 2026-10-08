@@ -138,3 +138,18 @@ def test_other_workspace_sees_nothing(event_id):
         assert S.list_events(s, stranger) == []
         with pytest.raises(S.NotFound):
             S.event_detail(s, stranger, event_id)
+
+
+def test_old_runs_are_pruned(event_id):
+    from sqlalchemy import select
+
+    from forecast_mcp.db import Run
+
+    with session_scope() as s:
+        sid = S.create_what_if(s, DASH, event_id, "Prune test").id
+    for max_staff in (20, 19, 18):
+        with session_scope() as s:
+            S.add_constraint(s, DASH, sid, {"type": "staff_limit", "max_staff": max_staff, "start": "09:00", "end": "10:00"})
+    with session_scope() as s:
+        statuses = [r.status for r in s.scalars(select(Run).where(Run.scenario_id == sid))]
+    assert statuses.count("done") == 2 and len(statuses) == 2

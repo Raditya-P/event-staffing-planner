@@ -147,9 +147,9 @@ async def login(request: Request) -> Response:
         "scope": "openid email profile",
         "state": state,
         "nonce": nonce,
-        "code_challenge": challenge,
-        "code_challenge_method": "S256",
     }
+    if settings.oidc_pkce:
+        params.update(code_challenge=challenge, code_challenge_method="S256")
     return RedirectResponse(f"{meta['authorization_endpoint']}?{urlencode(params)}", status_code=302)
 
 
@@ -170,7 +170,7 @@ async def callback(request: Request) -> Response:
                 "redirect_uri": _redirect_uri(),
                 "client_id": settings.oidc_client_id,
                 "client_secret": settings.oidc_client_secret,
-                "code_verifier": pending["verifier"],
+                **({"code_verifier": pending["verifier"]} if settings.oidc_pkce else {}),
             },
             headers={"Accept": "application/json"},
         )

@@ -41,6 +41,20 @@ def _database_url() -> str:
     return url
 
 
+# ENGINE_PROFILE=light suits small free hosts (a fraction of a CPU): smaller ensemble, shorter search.
+_PROFILES = {
+    "standard": {"FORECAST_MEMBERS": 10, "FORECAST_BOOST_ITERS": 80, "OPTIMIZER_POP_SIZE": 80,
+                 "OPTIMIZER_GENERATIONS": 120, "OPTIMIZER_SAMPLES": 40},
+    "light": {"FORECAST_MEMBERS": 6, "FORECAST_BOOST_ITERS": 50, "OPTIMIZER_POP_SIZE": 50,
+              "OPTIMIZER_GENERATIONS": 60, "OPTIMIZER_SAMPLES": 25},
+}
+
+
+def _engine(name: str) -> int:
+    profile = _PROFILES.get(_env("ENGINE_PROFILE", "standard").lower(), _PROFILES["standard"])
+    return _int(name, profile[name])
+
+
 def _production() -> bool:
     return _env("ENV", "development").lower() == "production"
 
@@ -65,6 +79,8 @@ class Settings:
     mcp_audience: str = field(default_factory=lambda: _env("MCP_AUDIENCE"))
     mcp_required_scopes: list[str] = field(default_factory=lambda: _list("MCP_REQUIRED_SCOPES"))
     session_secret: str = field(default_factory=lambda: _env("SESSION_SECRET"))
+    # Send PKCE on the dashboard login. Some providers accept it only for public clients; set 0 for those.
+    oidc_pkce: bool = field(default_factory=lambda: _env("OIDC_PKCE", "1") == "1")
     # Shown on the privacy page as the person to contact about data.
     contact_email: str = field(default_factory=lambda: _env("CONTACT_EMAIL"))
     # Behind a host's proxy (production), trust X-Forwarded-For so limits apply per real client.
@@ -80,12 +96,14 @@ class Settings:
     max_pending_per_event: int = field(default_factory=lambda: _int("MAX_PENDING_PER_EVENT", 50))
 
     # Forecast ensemble size and optimizer budget; tests shrink these for speed.
-    forecast_members: int = field(default_factory=lambda: _int("FORECAST_MEMBERS", 10))
-    forecast_boost_iters: int = field(default_factory=lambda: _int("FORECAST_BOOST_ITERS", 80))
-    optimizer_pop_size: int = field(default_factory=lambda: _int("OPTIMIZER_POP_SIZE", 80))
-    optimizer_generations: int = field(default_factory=lambda: _int("OPTIMIZER_GENERATIONS", 120))
-    optimizer_samples: int = field(default_factory=lambda: _int("OPTIMIZER_SAMPLES", 40))
+    forecast_members: int = field(default_factory=lambda: _engine("FORECAST_MEMBERS"))
+    forecast_boost_iters: int = field(default_factory=lambda: _engine("FORECAST_BOOST_ITERS"))
+    optimizer_pop_size: int = field(default_factory=lambda: _engine("OPTIMIZER_POP_SIZE"))
+    optimizer_generations: int = field(default_factory=lambda: _engine("OPTIMIZER_GENERATIONS"))
+    optimizer_samples: int = field(default_factory=lambda: _engine("OPTIMIZER_SAMPLES"))
     seed: int = field(default_factory=lambda: _int("SEED", 7))
+    # How often an idle worker checks the database for runs queued elsewhere. Long, so the database can sleep.
+    worker_idle_poll_seconds: int = field(default_factory=lambda: _int("WORKER_IDLE_POLL_SECONDS", 600))
 
     # /dev pages (a stand-in chat host for trying the panel). Off by default in production.
     dev_routes: bool = field(default_factory=lambda: _env("DEV_ROUTES", "0" if _production() else "1") == "1")
