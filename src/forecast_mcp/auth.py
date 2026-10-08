@@ -182,7 +182,9 @@ async def callback(request: Request) -> Response:
     except Exception as exc:
         log.warning("id_token rejected: %s", type(exc).__name__)
         return JSONResponse({"error": "Sign-in failed: the identity token was not valid."}, status_code=400)
-    if claims.get("nonce") != pending["nonce"]:
+    # Providers that echo the nonce must echo ours; some (e.g. WorkOS Connect) don't include it at all, and then the
+    # state check plus the confidential client secret still bind this response to the request we started.
+    if "nonce" in claims and claims["nonce"] != pending["nonce"]:
         return JSONResponse({"error": "Sign-in failed: nonce mismatch."}, status_code=400)
     request.session["user"] = {
         "iss": claims["iss"],
