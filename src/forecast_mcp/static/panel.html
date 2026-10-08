@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="cupcake">
+<html lang="en" data-theme="earth">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,7 +28,7 @@ let gate = "all";
 function applyContext(ctx) {
   if (!ctx) return;
   // Follow the chat's light/dark mode with the website's two themes.
-  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme === "dark" ? "cupcake-night" : "cupcake";
+  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme === "dark" ? "earth-dark" : "earth";
   const ins = ctx.safeAreaInsets;
   if (ins) root.style.padding = `${12 + ins.top}px ${12 + ins.right}px ${12 + ins.bottom}px ${12 + ins.left}px`;
 }
@@ -119,10 +119,10 @@ function renderProposal(d) {
     c.status === "pending" ? "badge-warning" : c.status === "active" ? "badge-success" : "badge-ghost");
   const b = cardBody(root, c.status === "pending" ? "border-secondary" : "");
   if (c.note) {
-    h("div", { class: "text-xs font-semibold uppercase text-base-content/60" }, b, "You said");
+    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "You said");
     h("blockquote", { class: "border-l-4 border-secondary pl-3 italic" }, b, `“${c.note.text}”`);
   }
-  h("div", { class: "text-xs font-semibold uppercase text-base-content/60" }, b, "Understood as");
+  h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Understood as");
   h("p", { class: "font-semibold" }, b, c.readback);
   if (c.interpretation && c.interpretation !== c.readback) h("p", { class: "text-sm text-base-content/75" }, b, c.interpretation);
   if (c.assumptions && c.assumptions.length) {
@@ -131,7 +131,7 @@ function renderProposal(d) {
     const ul = h("ul", { class: "collapse-content list-disc pl-8 text-sm" }, det);
     for (const a of c.assumptions) h("li", {}, ul, a);
   }
-  h("p", { class: "text-xs text-base-content/60" }, b, d.target ? `Goes into the what-if “${d.target.name}”.` : "Goes into a new what-if, so the official plan stays safe.");
+  h("p", { class: "text-xs text-base-content/70" }, b, d.target ? `Goes into the what-if “${d.target.name}”.` : "Goes into a new what-if, so the official plan stays safe.");
   if (c.status !== "pending") {
     alertBox(b, c.status === "rejected" ? `Rejected${c.decision_reason ? ": " + c.decision_reason : "."}` : `Already ${statusLabel(c.status).toLowerCase()}.`, c.status === "rejected" ? "" : "ok");
     return;
@@ -139,7 +139,7 @@ function renderProposal(d) {
   const actions = h("div", { class: "card-actions items-center" }, b);
   const ok = button(actions, "Yes, that's right", "btn-primary");
   const no = button(actions, "No, reject it", "btn-ghost");
-  h("span", { class: "text-xs text-base-content/60" }, actions, "Nothing changes until you confirm.");
+  h("span", { class: "text-xs text-base-content/70" }, actions, "Nothing changes until you confirm.");
   const msg = h("div", {}, b);
   ok.addEventListener("click", async () => {
     ok.disabled = no.disabled = true;
@@ -186,11 +186,11 @@ function renderScenario(d) {
 
   if (d.constraints.length) {
     const b = cardBody(root);
-    h("div", { class: "text-xs font-semibold uppercase text-base-content/60" }, b, "Changes in this plan");
+    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Changes in this plan");
     const ul = h("ul", { class: "list-disc space-y-1 pl-5 text-sm" }, b);
     for (const c of d.constraints) {
       const li = h("li", {}, ul, c.readback);
-      if (c.note) h("div", { class: "text-xs italic text-base-content/60" }, li, `“${c.note.text}”`);
+      if (c.note) h("div", { class: "text-xs italic text-base-content/70" }, li, `“${c.note.text}”`);
     }
   }
   if (d.pending.length) alertBox(root, `${d.pending.length} more note${d.pending.length > 1 ? "s" : ""} waiting for your confirmation.`);
@@ -264,7 +264,7 @@ function renderScenario(d) {
       });
     });
   }
-  button(act, "Refresh", "btn-ghost", refresh);
+  button(act, "Refresh", "", refresh);
 }
 
 async function refresh() {

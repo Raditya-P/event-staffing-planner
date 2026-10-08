@@ -22,7 +22,7 @@ def test_pages(client):
     assert "<script>" not in welcome  # strict CSP: no inline scripts on our own pages
     panel = client.get("/dev/panel.html").text
     assert "__APP_CSS__" not in panel and "__CHARTS_JS__" not in panel and "renderForecast" in panel
-    assert "cupcake-night" in panel  # the website's theme is inlined into the chat panel
+    assert "earth-dark" in panel  # the website's theme is inlined into the chat panel
     for asset in ("app.css", "app.js", "charts.js", "welcome.js", "privacy.js"):
         assert client.get(f"/static/{asset}").status_code == 200
     assert client.get("/privacy").status_code == 200

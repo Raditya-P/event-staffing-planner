@@ -11,6 +11,7 @@ confirm a constraint or change the official plan.
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from typing import Annotated
 
@@ -318,6 +319,9 @@ def panel_html() -> str:
     html = (STATIC / "panel.html").read_text(encoding="utf-8")
     charts = (STATIC / "charts.js").read_text(encoding="utf-8")
     styles = (STATIC / "app.css").read_text(encoding="utf-8")
+    # The panel runs in Claude's sandbox, not on this site, so the font travels inside the stylesheet.
+    font = base64.b64encode((STATIC / "fonts" / "ibm-plex-sans-latin-wght.woff2").read_bytes()).decode()
+    styles = styles.replace("/static/fonts/ibm-plex-sans-latin-wght.woff2", f"data:font/woff2;base64,{font}")
     return html.replace("/*__CHARTS_JS__*/", charts).replace("/*__APP_CSS__*/", styles)
 
 

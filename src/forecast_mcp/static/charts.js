@@ -384,7 +384,7 @@
         const maxL = result.bounds.max_lanes[gid][i];
         if (maxL === 0) { h("td", { class: "fc-closed", title: "Closed" }, tr, "–"); return; }
         const level = Math.min(6, Math.max(1, Math.ceil((v / (lanes[gid] || 1)) * 6)));
-        h("td", { style: `background:var(--seq-${level});color:var(${level >= 4 ? "--seq-ink-dark" : "--seq-ink-light"})`,
+        h("td", { style: `background:var(--seq-${level});color:var(--seq-ink-${level})`,
           title: `${names[gid]} ${result.hours[i]}: ${v} of ${lanes[gid]} lanes` }, tr, v);
       });
     }
