@@ -15,7 +15,8 @@ secrets. They are never printed and never committed.
 #>
 param(
     [string]$ResourceGroup = "forecast-mcp-rg",
-    [string]$Location = "southeastasia",   # Singapore, next to the Neon database
+    # Closest region to the Neon database (Singapore) that Azure for Students subscriptions allow.
+    [string]$Location = "malaysiawest",
     [string]$AppName = "forecast-mcp",
     [string]$EnvironmentName = "forecast-mcp-env",
     [switch]$EnableSignIn
@@ -28,11 +29,19 @@ Set-Location $Root
 # Call the Azure CLI's Python directly: az.cmd goes through cmd.exe, which breaks values containing & (like Neon URLs).
 $AzPython = Join-Path ${env:ProgramFiles} "Microsoft SDKs\Azure\CLI2\python.exe"
 if (-not (Test-Path $AzPython)) { throw "Azure CLI not found at $AzPython. Install it: winget install -e --id Microsoft.AzureCLI" }
+# Windows PowerShell 5.1 turns a native command's stderr into terminating errors under "Stop", so both helpers
+# run the CLI with "Continue" and judge success by its exit code only.
 function az {
+    $ErrorActionPreference = "Continue"
     & $AzPython -IBm azure.cli @args
     if ($LASTEXITCODE -ne 0) { throw "az $($args[0..2] -join ' ') failed (exit $LASTEXITCODE)" }
 }
-function az-quiet { & $AzPython -IBm azure.cli @args 2>$null; return ($LASTEXITCODE -eq 0) }
+function az-quiet {
+    # True if the command succeeds; output and errors are swallowed (used for "does this exist?" checks).
+    $ErrorActionPreference = "Continue"
+    & $AzPython -IBm azure.cli @args 2>&1 | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
 
 function Read-DotEnv {
     $values = @{}
@@ -66,12 +75,21 @@ if ($EnableSignIn) {
     }
 }
 
+Step "Checking that $Location is allowed"
+$allowed = az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" --output json | ConvertFrom-Json
+if ($allowed -and ($allowed -notcontains $Location)) {
+    throw "Your subscription only allows these regions: $($allowed -join ', '). Run again with -Location <one of them>."
+}
+
 Step "Preparing the subscription (one-time, can take a minute)"
 az extension add --name containerapp --upgrade --only-show-errors
 foreach ($ns in "Microsoft.App", "Microsoft.ContainerRegistry") { az provider register --namespace $ns --wait --output none }
 
-Step "Resource group $ResourceGroup in $Location"
-az group create --name $ResourceGroup --location $Location --output none
+Step "Resource group $ResourceGroup"
+# A resource group's own location is only metadata; an existing group is kept wherever it is.
+if ((az group exists --name $ResourceGroup).Trim() -ne "true") {
+    az group create --name $ResourceGroup --location $Location --output none
+}
 
 Step "Container registry $Registry"
 if (-not (az-quiet acr show --name $Registry --resource-group $ResourceGroup --output none)) {
