@@ -67,6 +67,18 @@ Settings: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET
 
 The server is one always-on process: web server, MCP endpoint and a background worker for forecast and optimization runs. The `Dockerfile` builds it for any container host. Pick a region close to your Neon database (yours is in Singapore, `ap-southeast-1`). Set the environment variables from `.env.example` in the host's dashboard, with `ENV=production`.
 
+### Running it for free
+
+- **Database:** Neon's free plan gives 0.5 GB of storage and a monthly compute allowance per project. The server is built to stay inside it:
+  - The idle worker checks the database only every 10 minutes, so Neon can pause.
+  - Old runs are deleted, keeping the two latest per scenario.
+  - The dashboard stops polling while its tab is hidden.
+  - Each user's demo copy takes roughly 1 MB.
+- **Sign-in:** WorkOS AuthKit is free up to a million monthly users and supports the registration Claude uses. Enable Dynamic Client Registration in its dashboard. Leave `MCP_AUDIENCE` empty, since its issuer is dedicated to this app. If the dashboard login rejects PKCE, set `OIDC_PKCE=0`.
+- **Host:** the server needs about 250 MB of memory.
+  - On hosts with a fraction of a CPU, set `ENGINE_PROFILE=light`. Expect slower runs, plus a delay while a sleeping service wakes and retrains the model.
+  - For short studies, running on your laptop behind a free tunnel works too.
+
 Several instances can share one database. Runs are claimed with `FOR UPDATE SKIP LOCKED`, and migrations take a lock. Rate limits are counted per instance.
 
 At start-up the server prints a warning for every unsafe production setting (no sign-in, `/dev` pages on, a weak session secret). With `AUTH_MODE=oidc` and missing settings, it refuses to start.

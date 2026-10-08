@@ -76,7 +76,9 @@ def _worker() -> None:
         if run_id:
             execute_run(run_id)
             continue
-        _wake.wait(timeout=2.0)
+        # Woken at once by commits in this process; the slow fallback only catches runs queued by other
+        # instances or left by a crashed worker. Polling often would keep Neon awake and use up free compute.
+        _wake.wait(timeout=settings.worker_idle_poll_seconds)
         _wake.clear()
 
 
@@ -231,7 +233,25 @@ def _execute(run_id: str) -> None:
             sc.selected_by_planner = False
         ev = s.get(Event, sc.event_id)
         ev.revision += 1
+        _prune_runs(s, scenario_id)
     log.info("run %s for %s done (%s)", run_id, scenario_name, result["recommended_id"])
+
+
+KEEP_DONE_RUNS = 2
+
+
+def _prune_runs(s, scenario_id: str) -> None:
+    """Keep the database small (Neon's free plan has 0.5 GB): drop all but the latest finished runs."""
+    old = s.scalars(
+        select(Run).where(Run.scenario_id == scenario_id, Run.status.in_(("done", "failed", "superseded")))
+        .order_by(Run.created_at.desc())
+    ).all()
+    done_seen = 0
+    for run in old:
+        if run.status == "done" and done_seen < KEEP_DONE_RUNS:
+            done_seen += 1
+            continue
+        s.delete(run)
 
 
 def warm_up() -> None:
