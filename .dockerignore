@@ -1,0 +1,9 @@
+.venv
+.env
+local.db*
+.git
+.pytest_cache
+__pycache__
+.vibe-wise
+.claude
+tests

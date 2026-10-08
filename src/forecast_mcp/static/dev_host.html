@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Panel Test Host</title>
+<link rel="stylesheet" href="/static/charts.css">
+<style>
+  body { margin: 0; background: var(--page); color: var(--text-primary); font-family: var(--font); }
+  header { padding: 12px 18px; background: var(--surface-1); border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 15px; margin: 0; }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--text-secondary); }
+  .wrap { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; padding: 16px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+  .box { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .box h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); margin: 0 0 8px; }
+  select, textarea { font: inherit; font-size: 12.5px; width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1); color: var(--text-primary); padding: 6px; }
+  textarea { font-family: ui-monospace, Consolas, monospace; min-height: 150px; }
+  button { font: inherit; font-size: 13px; font-weight: 600; border-radius: 8px; padding: 6px 12px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); margin-top: 8px; }
+  pre { white-space: pre-wrap; font-size: 12px; margin: 0; max-height: 320px; overflow: auto; }
+  iframe { width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); min-height: 400px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Panel test host (development only)</h1>
+  <p>Stands in for Claude: calls this server's real tools and shows the result in the same panel Claude renders. Buttons in the panel call the app-only tools.</p>
+</header>
+<div class="wrap">
+  <div>
+    <div class="box">
+      <h2>Call a tool as Claude would</h2>
+      <select id="tool"></select>
+      <textarea id="args" spellcheck="false" aria-label="Tool arguments (JSON)"></textarea>
+      <button id="go" type="button">Call tool</button>
+    </div>
+    <div class="box"><h2>What Claude reads (content)</h2><pre id="content">–</pre></div>
+    <div class="box"><h2>Context updates sent by the panel</h2><pre id="ctx">–</pre></div>
+  </div>
+  <iframe id="panel" title="Tool panel" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+</div>
+<script type="module">
+import { AppBridge, PostMessageTransport } from "https://esm.sh/@modelcontextprotocol/ext-apps@2.0.3/app-bridge";
+
+const $ = (id) => document.getElementById(id);
+const callTool = async (name, args) => (await fetch("/dev/call-tool", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, arguments: args }),
+})).json();
+
+const events = (await callTool("list_events", {})).structuredContent.events;
+const ev = events[0];
+const official = ev.scenarios.find((s) => s.kind === "official");
+const examples = {
+  get_forecast: { event_id: ev.id },
+  propose_constraint: {
+    event_id: ev.id,
+    source_text: "Roadworks will close the road to the north entrance between 5 and 8 in the evening.",
+    constraint: { type: "gate_closed", gate_id: "north", start: "17:00", end: "20:00" },
+    interpretation: "North Gate cannot admit anyone from 17:00 to 20:00.",
+    assumptions: ["'5 and 8 in the evening' read as 17:00-20:00 local time.", "The whole gate closes, not just some lanes."],
+  },
+  create_what_if: { event_id: ev.id, name: "Show at 20:00" },
+  get_scenario_result: { scenario_id: official.id },
+};
+const tools = (await (await fetch("/dev/tools")).json()).filter((t) => !(t._meta?.ui?.visibility || ["model"]).every((v) => v === "app"));
+for (const t of tools) { const o = document.createElement("option"); o.value = o.textContent = t.name; $("tool").appendChild(o); }
+$("tool").value = "get_forecast";
+const setArgs = () => { $("args").value = JSON.stringify(examples[$("tool").value] || {}, null, 2); };
+$("tool").addEventListener("change", setArgs);
+setArgs();
+
+const panelHtml = await (await fetch("/dev/panel.html")).text();
+const theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+let bridge = null;
+
+async function show(name, args) {
+  const result = await callTool(name, args);
+  $("content").textContent = (result.content || []).map((c) => c.text).join("\n") + (result.isError ? "\n[isError]" : "");
+  const tool = tools.find((t) => t.name === name);
+  if (!tool?._meta?.ui?.resourceUri) return;
+  const old = $("panel");
+  const iframe = old.cloneNode(false);
+  old.replaceWith(iframe);
+  bridge = new AppBridge(null, { name: "Dev host", version: "0.1.0" },
+    { serverTools: {}, logging: {}, updateModelContext: { text: {} }, message: { text: {} } },
+    { hostContext: { theme, displayMode: "inline" } });
+  bridge.oncalltool = async (params) => callTool(params.name, params.arguments || {});
+  bridge.onupdatemodelcontext = async (params) => {
+    $("ctx").textContent = new Date().toLocaleTimeString() + "  " + params.content.map((c) => c.text).join("\n") + "\n\n" + $("ctx").textContent.replace(/^–$/, "");
+    return {};
+  };
+  bridge.onmessage = async (params) => { $("ctx").textContent = "[message] " + JSON.stringify(params) + "\n" + $("ctx").textContent; return {}; };
+  bridge.onsizechange = ({ height }) => { if (height) iframe.style.height = Math.max(400, height + 4) + "px"; };
+  bridge.oninitialized = async () => {
+    await bridge.sendToolInput({ arguments: args });
+    await bridge.sendToolResult(result);
+  };
+  await bridge.connect(new PostMessageTransport(iframe.contentWindow, iframe.contentWindow));
+  iframe.srcdoc = panelHtml;
+}
+
+$("go").addEventListener("click", () => {
+  let args;
+  try { args = JSON.parse($("args").value || "{}"); } catch (e) { $("content").textContent = "Arguments are not valid JSON: " + e.message; return; }
+  show($("tool").value, args);
+});
+show("get_forecast", examples.get_forecast);
+</script>
+</body>
+</html>
