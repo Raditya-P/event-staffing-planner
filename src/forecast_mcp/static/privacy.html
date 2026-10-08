@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Privacy · Event Staffing</title>
+<link rel="stylesheet" href="/static/charts.css">
+<link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<header class="site-top">
+  <a class="brand" href="/">Event forecast &amp; staffing</a>
+</header>
+<main class="site-main prose">
+  <h1>Privacy</h1>
+  <p>This is a research prototype. It stores only what it needs to work, and it uses no analytics or advertising trackers.</p>
+
+  <h2>What is stored</h2>
+  <ul>
+    <li><strong>Your sign-in identity:</strong> the identifier your sign-in provider gives us, plus your email address and name if the provider shares them.</li>
+    <li><strong>What you do in your workspace:</strong> the notes you type or say to Claude (kept word for word), the constraints made from them, the scenarios and plans you choose, and an audit log of who changed what and when.</li>
+    <li><strong>Technical logs:</strong> request logs (address, time, path) kept by the server and its host for operation and security.</li>
+  </ul>
+
+  <h2>What is not stored</h2>
+  <ul>
+    <li>Your Claude conversations. When you use the Claude connector, the server only receives the tool calls Claude makes, such as a note it records for you.</li>
+    <li>Passwords. Sign-in is handled by the sign-in provider.</li>
+  </ul>
+
+  <h2>Who can see it</h2>
+  <p>Your workspace is visible only to you. The people running this server can access the database to operate and improve it.</p>
+
+  <h2>Keeping and deleting</h2>
+  <p>The "Reset demo" button in the dashboard deletes everything in your workspace and loads a fresh demo. To delete your account and identity record, contact <span id="contact">the operator of this server</span>.</p>
+
+  <h2>Demo data</h2>
+  <p>The theme park, its gates and its arrival history are fictional. Forecasts and plans are illustrations, not operational advice.</p>
+</main>
+<footer class="site-foot"><a href="/">Home</a></footer>
+<script src="/static/site.js"></script>
+</body>
+</html>

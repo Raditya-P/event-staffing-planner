@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Forecast panel</title>
+<style>
+/*__CHARTS_CSS__*/
+html, body { margin: 0; background: transparent; }
+body { font-family: var(--font); color: var(--text-primary); }
+#app { padding: 12px 14px 14px; }
+.p-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.p-title { font-size: 16px; font-weight: 650; margin: 0; }
+.p-meta { font-size: 12px; color: var(--text-secondary); }
+.p-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border); }
+.p-section { margin-top: 14px; }
+.p-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.p-quote { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--baseline); color: var(--text-primary); font-style: italic; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.p-kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; margin: 8px 0; }
+.p-kv dt { color: var(--text-secondary); }
+.p-kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.p-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.p-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+button.p-btn { font: inherit; font-size: 13px; font-weight: 600; border-radius: 8px; padding: 7px 14px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+button.p-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.p-btn.danger { color: var(--critical); }
+button.p-btn:disabled { opacity: 0.55; cursor: default; }
+button.p-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.p-status { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); margin-top: 10px; }
+.p-status.ok { color: var(--good); }
+.p-status.err { color: var(--critical); }
+.p-progress { height: 4px; background: var(--grid); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.p-progress > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.p-stats { display: flex; gap: 18px; flex-wrap: wrap; margin: 8px 0; }
+.p-stat .v { font-size: 20px; font-weight: 600; }
+.p-stat .l { font-size: 12px; color: var(--text-secondary); }
+.p-confirm { border: 1px solid var(--accent); }
+input.p-input { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); min-width: 220px; }
+details.p-details summary { cursor: pointer; font-size: 13px; color: var(--accent); margin: 6px 0; }
+</style>
+</head>
+<body>
+<div id="app" class="fc-root"><div class="p-meta">Loading…</div></div>
+<script>
+/*__CHARTS_JS__*/
+</script>
+<script type="module">
+import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@2.0.3/app-with-deps";
+
+const { h, fmt, fmt1, eur, pct } = window.FC;
+const root = document.getElementById("app");
+const app = new App({ name: "Forecast & staffing panel", version: "0.1.0" });
+let current = null;      // last structured payload
+let pollTimer = null;
+
+function applyContext(ctx) {
+  if (!ctx) return;
+  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme;
+  const ins = ctx.safeAreaInsets;
+  if (ins) root.style.padding = `${12 + ins.top}px ${14 + ins.right}px ${14 + ins.bottom}px ${14 + ins.left}px`;
+}
+
+function textOf(result) {
+  return (result.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+}
+
+async function call(name, args) {
+  const result = await app.callServerTool({ name, arguments: args });
+  if (result.isError) throw new Error(textOf(result) || "The server refused the request.");
+  return result.structuredContent;
+}
+
+async function tellClaude(text) {
+  // Keeps Claude's picture of the conversation current; the planner sees it in the next turn.
+  try { await app.updateModelContext({ content: [{ type: "text", text }] }); } catch (e) { /* host may not support it */ }
+}
+
+function header(title, meta, pill) {
+  const head = h("div", { class: "p-head" }, root);
+  const left = h("div", {}, head);
+  h("h2", { class: "p-title" }, left, title);
+  if (meta) h("div", { class: "p-meta" }, left, meta);
+  if (pill) h("span", { class: "p-pill" }, head, pill);
+}
+
+function statusBox(parent, text, kind) {
+  return h("div", { class: "p-status" + (kind ? " " + kind : "") }, parent, text);
+}
+
+/* ---------------- views ---------------- */
+
+function render(data) {
+  current = data;
+  clearTimeout(pollTimer);
+  root.textContent = "";
+  if (data.view === "forecast") renderForecastView(data);
+  else if (data.view === "proposal") renderProposal(data);
+  else if (data.view === "scenario") renderScenario(data);
+  else h("div", { class: "p-meta" }, root, "Nothing to show.");
+}
+
+function renderForecastView(d) {
+  const ev = d.event, sc = d.scenario;
+  header(`${ev.name} · forecast`, `${ev.weekday} ${ev.date} · ${ev.venue} · scenario “${sc.name}”`, sc.kind === "official" ? "Official plan" : "What-if");
+  const box = h("div", {}, root);
+  FC.renderForecast(box, d.forecast, { title: true });
+}
+
+function renderProposal(d) {
+  const c = d.constraint;
+  header("Check this reading of your note", d.event ? `${d.event.name} · ${d.event.date}` : "", statusLabel(c.status));
+  const card = h("div", { class: "p-card" + (c.status === "pending" ? " p-confirm" : "") }, root);
+  if (c.note) h("blockquote", { class: "p-quote" }, card, `“${c.note.text}”`);
+  const kv = h("dl", { class: "p-kv" }, card);
+  const row = (k, v) => { h("dt", {}, kv, k); h("dd", {}, kv, v); };
+  row("Claude read it as", c.interpretation || c.readback);
+  row("Formal constraint", c.readback);
+  row("Type", `${c.type} (acts on the ${c.acts_on})`);
+  for (const [k, v] of Object.entries(c.params)) row(k, String(v));
+  row("Goes into", d.target ? `what-if “${d.target.name}”` : "a new what-if, copied from the official plan");
+  if (c.assumptions && c.assumptions.length) {
+    h("div", { class: "p-meta", style: "margin-top:8px" }, card, "Claude assumed:");
+    const ul = h("ul", { class: "p-list" }, card);
+    for (const a of c.assumptions) h("li", {}, ul, a);
+  }
+  if (c.status !== "pending") {
+    statusBox(card, c.status === "rejected" ? `Rejected${c.decision_reason ? ": " + c.decision_reason : ""}.` :
+      `Already ${c.status}.`, c.status === "rejected" ? "" : "ok");
+    return;
+  }
+  const actions = h("div", { class: "p-actions" }, card);
+  const ok = h("button", { class: "p-btn primary", type: "button" }, actions, "Confirm and re-optimize");
+  const no = h("button", { class: "p-btn", type: "button" }, actions, "Reject");
+  h("span", { class: "p-meta" }, actions, "Nothing changes until you confirm. The official plan only changes if you later promote the what-if.");
+  const msg = h("div", {}, card);
+  ok.addEventListener("click", async () => {
+    ok.disabled = no.disabled = true;
+    try {
+      const state = await call("confirm_constraint", { constraint_id: c.id });
+      await tellClaude(`The planner CONFIRMED constraint ${c.id} (${c.readback}). It is now in what-if "${state.scenario.name}" [${state.scenario.id}], which is being re-optimized. Use get_scenario_result to discuss the outcome.`);
+      render({ view: "scenario", ...state });
+    } catch (e) { ok.disabled = no.disabled = false; msg.textContent = ""; statusBox(msg, e.message, "err"); }
+  });
+  no.addEventListener("click", () => {
+    actions.textContent = "";
+    const input = h("input", { class: "p-input", type: "text", placeholder: "Why? (optional, helps Claude correct it)" }, actions);
+    const send = h("button", { class: "p-btn danger", type: "button" }, actions, "Reject");
+    const back = h("button", { class: "p-btn", type: "button" }, actions, "Cancel");
+    input.focus();
+    back.addEventListener("click", () => render(current));
+    send.addEventListener("click", async () => {
+      send.disabled = true;
+      try {
+        const out = await call("reject_constraint", { constraint_id: c.id, reason: input.value });
+        await tellClaude(`The planner REJECTED constraint ${c.id} (${c.readback})${input.value ? ": " + input.value : ""}. Ask how to read their note instead.`);
+        render({ ...current, constraint: out.constraint });
+      } catch (e) { send.disabled = false; statusBox(msg, e.message, "err"); }
+    });
+  });
+}
+
+function statusLabel(status) {
+  return { pending: "Waiting for you", active: "Applied", rejected: "Rejected", removed: "Removed" }[status] || status;
+}
+
+function renderScenario(d) {
+  const ev = d.event, sc = d.scenario, run = d.run;
+  header(sc.name, `${ev.name} · ${ev.weekday} ${ev.date} · ${ev.venue}`,
+    sc.kind === "official" ? "Official plan" : sc.status === "active" ? "What-if" : sc.status);
+
+  const running = run && (run.status === "queued" || run.status === "running");
+  if (running) {
+    const st = statusBox(root, `Re-optimizing… ${run.stage === "forecast" ? "updating the forecast" : "searching staffing plans"}`);
+    const bar = h("div", { class: "p-progress" }, st);
+    h("div", { style: `width:${Math.round((run.stage === "optimize" ? 0.2 + 0.8 * run.progress : 0.1) * 100)}%` }, bar);
+    pollTimer = setTimeout(refresh, 1500);
+  } else if (run && run.status === "failed") {
+    statusBox(root, `The last run failed: ${run.error}`, "err");
+  }
+
+  // Constraints
+  const cons = h("div", { class: "p-section" }, root);
+  h("div", { class: "fc-h" }, cons, "Constraints in this scenario");
+  if (!d.constraints.length) h("div", { class: "p-meta" }, cons, "None: this is the plan without planner notes.");
+  else {
+    const ul = h("ul", { class: "p-list" }, cons);
+    for (const c of d.constraints) {
+      const li = h("li", {}, ul, c.readback);
+      if (c.note) h("div", { class: "p-meta" }, li, `From: “${c.note.text}”`);
+    }
+  }
+  if (d.pending.length) h("div", { class: "p-meta", style: "margin-top:6px" }, cons, `${d.pending.length} more waiting for your confirmation.`);
+
+  if (!d.result) { if (!running) h("div", { class: "p-meta" }, root, "No result yet."); return; }
+
+  const sel = d.selected_solution;
+  if (d.result.service_cap_met === false) statusBox(root, `No plan keeps the expected wait under ${d.result.max_expected_wait} minutes with these constraints. These are the best possible plans.`, "err");
+
+  // Headline numbers for the selected plan
+  if (sel) {
+    const sec = h("div", { class: "p-section" }, root);
+    const stats = h("div", { class: "p-stats" }, sec);
+    const stat = (v, l) => { const s = h("div", { class: "p-stat" }, stats); h("div", { class: "v" }, s, v); h("div", { class: "l" }, s, l); };
+    stat(eur(sel.staff_cost), `${sel.staff_hours} staff-hours`);
+    stat(`${fmt1(sel.expected_wait)} min`, "expected wait per guest");
+    stat(`${fmt1(sel.wait_p90)} min`, "on a bad day (9 of 10 are better)");
+    if (d.comparison) {
+      const c = d.comparison;
+      h("div", { class: "p-meta" }, sec,
+        `Versus the official plan: ${c.delta_staff_hours >= 0 ? "+" : ""}${c.delta_staff_hours} staff-hours (${c.delta_staff_cost >= 0 ? "+" : "−"}${eur(Math.abs(c.delta_staff_cost))}), ` +
+        `expected wait ${c.delta_expected_wait >= 0 ? "+" : "−"}${fmt1(Math.abs(c.delta_expected_wait))} min, ` +
+        `expected arrivals ${c.delta_day_arrivals_p50 >= 0 ? "+" : "−"}${fmt(Math.abs(c.delta_day_arrivals_p50 || 0))}.`);
+    }
+    if (d.explanation) h("div", { class: "p-meta", style: "margin-top:4px" }, sec, d.explanation);
+  }
+
+  const tradeoff = h("div", { class: "p-section" }, root);
+  const editable = d.editable && !running && !d.result_is_stale;
+  FC.renderTradeoff(tradeoff, d.result, {
+    selectedId: sc.selected_solution_id,
+    official: d.comparison ? d.comparison.official : null,
+    editable,
+    onSelect: async (id) => {
+      try {
+        const state = await call("select_plan", { scenario_id: sc.id, solution_id: id });
+        render({ view: "scenario", ...state });
+        const s = state.selected_solution;
+        await tellClaude(`The planner selected plan ${id} in "${sc.name}": ${s.staff_hours} staff-hours, EUR ${Math.round(s.staff_cost)}, expected wait ${fmt1(s.expected_wait)} min.`);
+      } catch (e) { statusBox(root, e.message, "err"); }
+    },
+  });
+
+  if (sel) {
+    const sched = h("div", { class: "p-section" }, root);
+    FC.renderSchedule(sched, sel, d.result, ev.gates);
+  }
+
+  if (d.forecast) {
+    const det = h("details", { class: "p-details p-section" }, root);
+    h("summary", {}, det, "Forecast used for this scenario");
+    const box = h("div", {}, det);
+    det.addEventListener("toggle", () => { if (det.open && !box.firstChild) FC.renderForecast(box, d.forecast, { title: false }); });
+  }
+
+  // Promote: a second, explicit confirmation step.
+  if (d.editable && sel && !running && !d.result_is_stale) {
+    const act = h("div", { class: "p-actions p-section" }, root);
+    const promote = h("button", { class: "p-btn primary", type: "button" }, act, "Make this the official plan…");
+    h("button", { class: "p-btn", type: "button" }, act, "Refresh").addEventListener("click", refresh);
+    promote.addEventListener("click", () => {
+      act.textContent = "";
+      const card = h("div", { class: "p-card p-confirm", style: "width:100%" }, act);
+      h("div", { class: "fc-h" }, card, "Replace the official plan?");
+      h("div", { class: "p-meta" }, card,
+        `“${sc.name}” with plan ${sel.id} (${sel.staff_hours} staff-hours, ${eur(sel.staff_cost)}, ${fmt1(sel.expected_wait)} min expected wait) becomes the official plan. ` +
+        `The current official plan is archived and stays in the history.`);
+      const row = h("div", { class: "p-actions" }, card);
+      const yes = h("button", { class: "p-btn primary", type: "button" }, row, "Yes, make it official");
+      h("button", { class: "p-btn", type: "button" }, row, "Cancel").addEventListener("click", () => render(current));
+      yes.addEventListener("click", async () => {
+        yes.disabled = true;
+        try {
+          const state = await call("promote_scenario", { scenario_id: sc.id, solution_id: sel.id });
+          await tellClaude(`The planner PROMOTED "${sc.name}" [${sc.id}] with plan ${sel.id} to the official plan (${sel.staff_hours} staff-hours, EUR ${Math.round(sel.staff_cost)}, expected wait ${fmt1(sel.expected_wait)} min).`);
+          render({ view: "scenario", ...state });
+        } catch (e) { yes.disabled = false; statusBox(card, e.message, "err"); }
+      });
+    });
+  } else {
+    const act = h("div", { class: "p-actions p-section" }, root);
+    h("button", { class: "p-btn", type: "button" }, act, "Refresh").addEventListener("click", refresh);
+  }
+}
+
+async function refresh() {
+  if (!current || current.view !== "scenario") return;
+  try {
+    const state = await call("get_scenario_state", { scenario_id: current.scenario.id });
+    const wasRunning = current.run && (current.run.status === "queued" || current.run.status === "running");
+    render({ view: "scenario", ...state });
+    if (wasRunning && state.run && state.run.status === "done" && state.selected_solution) {
+      const s = state.selected_solution;
+      await tellClaude(`Re-optimization of "${state.scenario.name}" finished. Balanced plan ${s.id}: ${s.staff_hours} staff-hours, EUR ${Math.round(s.staff_cost)}, expected wait ${fmt1(s.expected_wait)} min. Call get_scenario_result for the full trade-off.`);
+    }
+  } catch (e) { statusBox(root, e.message, "err"); }
+}
+
+app.ontoolresult = (result) => {
+  if (result.isError) { root.textContent = ""; statusBox(root, textOf(result), "err"); return; }
+  if (result.structuredContent) render(result.structuredContent);
+};
+app.onhostcontextchanged = applyContext;
+app.onteardown = async () => { clearTimeout(pollTimer); return {}; };
+
+await app.connect();
+applyContext(app.getHostContext());
+</script>
+</body>
+</html>

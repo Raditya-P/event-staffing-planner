@@ -1,0 +1,40 @@
+[project]
+name = "forecast-mcp"
+version = "0.1.0"
+description = "Audience forecasting and staff scheduling for event planners, exposed to Claude over MCP and to planners through a web dashboard."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=2.3,<3",
+    "sqlalchemy>=2.1,<3",
+    "psycopg[binary]>=3.2,<4",
+    "numpy>=2.0",
+    "scikit-learn>=1.5",
+    "pymoo==0.6.2",
+    "uvicorn>=0.31",
+    "starlette>=0.48",
+    "python-dotenv>=1.0",
+    "alembic>=1.13",
+    "httpx>=0.27",
+    "itsdangerous>=2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "cryptography>=42",
+]
+
+[project.scripts]
+forecast-mcp = "forecast_mcp.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forecast_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
