@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy · Event Staffing Planner</title>
 <link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
+<link rel="icon" href="/static/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
 </head>
-<body class="min-h-screen bg-base-200">
-<header class="navbar bg-base-100 px-4 shadow-sm">
-  <a href="/" class="flex items-center gap-2 text-lg font-bold">
-    <svg viewBox="0 0 32 32" class="size-8" aria-hidden="true"><rect x="2" y="6" width="28" height="22" rx="7" fill="var(--color-primary)"/><path d="M9 28V17a7 7 0 0 1 14 0v11" fill="var(--color-base-100)"/><circle cx="16" cy="13" r="2.5" fill="var(--color-secondary)"/></svg>
-    Event Staffing Planner
+<body class="min-h-screen bg-base-100">
+<header class="navbar border-b border-base-300 bg-base-100 px-4">
+  <a href="/" class="flex items-center gap-2.5 text-xl">
+    <img src="/static/brand/logo.svg" class="size-9 shrink-0" alt="">
+    <span class="brand-name">Event Staffing <span class="text-primary">Planner</span></span>
   </a>
 </header>
 <main class="mx-auto w-full max-w-2xl px-4 py-8">
@@ -39,7 +42,7 @@
       <p class="text-base-content/85">"Start over with a fresh demo" in the account menu deletes everything in your workspace. To delete your account and identity record, contact <span id="contact">the people running this server</span>.</p>
 
       <div role="alert" class="alert alert-soft">
-        <span>The theme park, its entrances and its visitor history are made up. Forecasts and plans are calculated for real from that invented history, as a demonstration, not as operational advice.</span>
+        <span>The theme park, its entrances and its visitor history are made up. Forecasts and plans are calculated from that invented history, as a demonstration, not as operational advice.</span>
       </div>
       <div class="card-actions"><a class="btn" href="/">Back</a></div>
     </div>

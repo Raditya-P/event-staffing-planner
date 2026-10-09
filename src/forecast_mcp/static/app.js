@@ -652,7 +652,7 @@
   /* ---------------- learn & tour ---------------- */
 
   const TOUR = [
-    { title: "Meet your park", text: [
+    { title: "Your park", text: [
       "This is Parkland Theme Park, a made-up park for trying the tool. Guests come in through three entrances, and each can open several lanes.",
       "Today's event is the one in the menu at the top. You can switch events there." ], visual: tourPark },
     { title: "Reading a forecast", text: [
@@ -802,7 +802,7 @@
     const cov = fc && fc.backtest ? `${pct(fc.backtest.coverage_p10_p90)} of what really happened (the aim is 80%)` : "close to the aim of 80%";
     for (const [title, text, cls] of [
       ["The park is made up", `Parkland Theme Park, its entrances and ${days} days of visitor history are invented. They are built to behave like real arrivals: busy mornings, an evening rush before the show, quieter rainy days, and one brand-new entrance.`, "bg-secondary/12"],
-      ["The numbers are really calculated", "Nothing on screen is faked or typed in. Every forecast and every staffing plan is worked out live from that history by a forecasting model and an optimization algorithm.", "bg-primary/12"],
+      ["The numbers are calculated", "Nothing on screen is faked or typed in. Every forecast and every staffing plan is worked out live from that history by a forecasting model and an optimization algorithm.", "bg-primary/12"],
       ["The forecast is checked", `On past days it had not seen, the forecast's likely ranges contained ${cov}. So its sense of its own uncertainty is about right.`, "bg-accent/18"],
       ["The methods are simple stand-ins", "The forecasting model and the optimization algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.", "bg-info/12"],
     ]) {

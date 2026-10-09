@@ -4,7 +4,8 @@
 @source "../static/*.html";
 @source "../static/*.js";
 
-/* IBM Plex Sans (SIL Open Font License, static/fonts/OFL.txt), served from this site; inlined into the chat panel. */
+/* Fonts (SIL Open Font License, see static/fonts/OFL-*.txt), served from this site and inlined into the chat panel.
+   IBM Plex Sans for text; Instrument Sans for the name and headings, as on AdviceIT. */
 @font-face {
   font-family: "IBM Plex Sans";
   src: url("/static/fonts/ibm-plex-sans-latin-wght.woff2") format("woff2");
@@ -12,8 +13,16 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/static/fonts/instrument-sans-latin-wght.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Instrument Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 @plugin "./daisyui.mjs" {
@@ -21,33 +30,33 @@
   logs: false;
 }
 
-/* "Earth": warm sand background, off-white cards, deep teal, terracotta and ochre accents.
-   Every text/background pair is at least 4.5:1; white text only sits on the deep colours. */
+/* "Planner": white pages, navy text and the AdviceIT blues. Buttons use a blue a step darker than the
+   brand blue (#2f7fd0) so white text on them reaches 4.5:1. */
 @plugin "./daisyui-theme.mjs" {
-  name: "earth";
+  name: "planner";
   default: true;
   prefersdark: false;
   color-scheme: light;
-  --color-base-100: oklch(98.5% 0.008 90);
-  --color-base-200: oklch(94.5% 0.03 88);
-  --color-base-300: oklch(86% 0.045 82);
-  --color-base-content: oklch(27% 0.025 60);
-  --color-primary: oklch(43% 0.075 200);
-  --color-primary-content: oklch(98% 0.01 200);
-  --color-secondary: oklch(50% 0.12 42);
-  --color-secondary-content: oklch(98% 0.01 60);
-  --color-accent: oklch(70% 0.12 80);
-  --color-accent-content: oklch(25% 0.04 60);
-  --color-neutral: oklch(33% 0.03 60);
-  --color-neutral-content: oklch(96% 0.01 85);
-  --color-info: oklch(52% 0.09 235);
-  --color-info-content: oklch(98% 0.01 235);
-  --color-success: oklch(50% 0.1 150);
-  --color-success-content: oklch(98% 0.01 150);
-  --color-warning: oklch(74% 0.14 75);
-  --color-warning-content: oklch(26% 0.05 60);
-  --color-error: oklch(50% 0.16 27);
-  --color-error-content: oklch(98% 0.01 27);
+  --color-base-100: #ffffff;
+  --color-base-200: #f3f6fa;
+  --color-base-300: #e3e9f1;
+  --color-base-content: #0d1725;
+  --color-primary: #2670bb;
+  --color-primary-content: #ffffff;
+  --color-secondary: #16456f;
+  --color-secondary-content: #ffffff;
+  --color-accent: #e0a136;
+  --color-accent-content: #0d1725;
+  --color-neutral: #1b2a41;
+  --color-neutral-content: #ffffff;
+  --color-info: #2a73bf;
+  --color-info-content: #ffffff;
+  --color-success: #1a7f53;
+  --color-success-content: #ffffff;
+  --color-warning: #e0a136;
+  --color-warning-content: #0d1725;
+  --color-error: #c23b3b;
+  --color-error-content: #ffffff;
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 0.75rem;
@@ -58,32 +67,32 @@
   --noise: 0;
 }
 
-/* Dark counterpart, used only by the chat panel when Claude is in dark mode. */
+/* Dark counterpart (the AdviceIT dark palette), used only by the chat panel when Claude is in dark mode. */
 @plugin "./daisyui-theme.mjs" {
-  name: "earth-dark";
+  name: "planner-dark";
   default: false;
   prefersdark: false;
   color-scheme: dark;
-  --color-base-100: oklch(27% 0.015 70);
-  --color-base-200: oklch(23% 0.013 70);
-  --color-base-300: oklch(38% 0.02 72);
-  --color-base-content: oklch(92% 0.015 85);
-  --color-primary: oklch(70% 0.08 200);
-  --color-primary-content: oklch(20% 0.03 200);
-  --color-secondary: oklch(70% 0.11 45);
-  --color-secondary-content: oklch(22% 0.04 45);
-  --color-accent: oklch(80% 0.11 82);
-  --color-accent-content: oklch(25% 0.04 60);
-  --color-neutral: oklch(38% 0.02 70);
-  --color-neutral-content: oklch(94% 0.01 85);
-  --color-info: oklch(72% 0.09 235);
-  --color-info-content: oklch(20% 0.03 235);
-  --color-success: oklch(72% 0.11 150);
-  --color-success-content: oklch(20% 0.04 150);
-  --color-warning: oklch(80% 0.13 78);
-  --color-warning-content: oklch(24% 0.05 60);
-  --color-error: oklch(70% 0.14 27);
-  --color-error-content: oklch(20% 0.05 27);
+  --color-base-100: #111a2b;
+  --color-base-200: #0b1220;
+  --color-base-300: #22314a;
+  --color-base-content: #eaf0f8;
+  --color-primary: #61a5e8;
+  --color-primary-content: #06101d;
+  --color-secondary: #9cc6f0;
+  --color-secondary-content: #06101d;
+  --color-accent: #e8b357;
+  --color-accent-content: #06101d;
+  --color-neutral: #2a3a55;
+  --color-neutral-content: #eaf0f8;
+  --color-info: #61a5e8;
+  --color-info-content: #06101d;
+  --color-success: #4cc48a;
+  --color-success-content: #06101d;
+  --color-warning: #e8b357;
+  --color-warning-content: #06101d;
+  --color-error: #f07070;
+  --color-error-content: #06101d;
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 0.75rem;
@@ -95,22 +104,20 @@
 }
 
 /* ---- Chart tokens (validated for colour-blind separation and 3:1 contrast on each theme's card colour) ---- */
-:root, [data-theme="earth"] {
-  --series-1: #006e95;  /* deep blue: the forecast, day-to-day variation, plans */
-  --series-2: #ba5d1d;  /* burnt orange: limited history */
+:root, [data-theme="planner"] {
+  --series-1: #2670bb;  /* blue: the forecast, day-to-day variation, plans */
+  --series-2: #c46a12;  /* orange: limited history */
   /* staffing heat cells: light to dark blue, with the text colour chosen per step for 4.5:1 */
-  --seq-1: oklch(95% 0.02 225); --seq-2: oklch(88% 0.045 225); --seq-3: oklch(79% 0.07 225);
-  --seq-4: oklch(69% 0.09 225); --seq-5: oklch(52% 0.1 228); --seq-6: oklch(42% 0.09 230);
+  --seq-1: #eef4fb; --seq-2: #d6e6f7; --seq-3: #b3d0ef; --seq-4: #86b3e3; --seq-5: #336fb3; --seq-6: #1d5592;
   --seq-ink-1: var(--color-base-content); --seq-ink-2: var(--color-base-content); --seq-ink-3: var(--color-base-content);
   --seq-ink-4: var(--color-base-content); --seq-ink-5: #ffffff; --seq-ink-6: #ffffff;
 }
-[data-theme="earth-dark"] {
-  --series-1: #3e9ec5;
-  --series-2: #d47636;
-  --seq-1: oklch(33% 0.03 225); --seq-2: oklch(40% 0.05 225); --seq-3: oklch(47% 0.07 225);
-  --seq-4: oklch(66% 0.09 225); --seq-5: oklch(75% 0.08 225); --seq-6: oklch(84% 0.06 225);
+[data-theme="planner-dark"] {
+  --series-1: #3f8ed6;
+  --series-2: #cf7a26;
+  --seq-1: #16243b; --seq-2: #1d3557; --seq-3: #25497a; --seq-4: #5a95d4; --seq-5: #86b3e3; --seq-6: #b9d5f2;
   --seq-ink-1: var(--color-base-content); --seq-ink-2: var(--color-base-content); --seq-ink-3: var(--color-base-content);
-  --seq-ink-4: oklch(20% 0.02 225); --seq-ink-5: oklch(20% 0.02 225); --seq-ink-6: oklch(20% 0.02 225);
+  --seq-ink-4: #06101d; --seq-ink-5: #06101d; --seq-ink-6: #06101d;
 }
 :root {
   --surface-1: var(--color-base-100);
@@ -122,22 +129,32 @@
   --grid: color-mix(in oklab, var(--color-base-content) 11%, transparent);
   --baseline: color-mix(in oklab, var(--color-base-content) 35%, transparent);
   --fc-line: var(--color-base-300);
-  --outline: color-mix(in oklab, var(--color-base-300), var(--color-base-content) 22%);
+  --outline: color-mix(in oklab, var(--color-base-300), var(--color-base-content) 16%);
   --closed: var(--color-base-200);
   --accent: var(--color-primary);
-  --warn-bg: color-mix(in oklab, var(--color-warning) 28%, var(--color-base-100));
+  --warn-bg: color-mix(in oklab, var(--color-warning) 22%, var(--color-base-100));
   --warn-ink: var(--color-base-content);
   --font: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: "Instrument Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Focus moves to the page on every route change so screen readers announce it; it needs no visible ring. */
+#page:focus { outline: none; }
+
+/* Headings and the name use Instrument Sans with the tight tracking AdviceIT uses. */
+h1, h2, h3, .card-title, .font-heading { font-family: var(--font-head); letter-spacing: -0.021em; }
+.brand-name { font-family: var(--font-head); font-weight: 600; letter-spacing: -0.03em; }
 
 /* ---- Outlines: give cards, panels, buttons and fields a clear edge ---- */
 .card, .stats, .collapse, .list, .modal-box, .tabs-box, .fc-card { border: 1px solid var(--outline); }
-.btn:not(.btn-ghost):not(.btn-link) { --btn-border: color-mix(in oklab, var(--btn-color, var(--color-base-300)), #000 24%); }
-.input, .select, .textarea { --input-color: color-mix(in oklab, var(--color-base-content) 34%, #0000); }
+.btn:not(.btn-ghost):not(.btn-link) { --btn-border: color-mix(in oklab, var(--btn-color, var(--color-base-300)), #000 22%); }
+.input, .select, .textarea { --input-color: color-mix(in oklab, var(--color-base-content) 30%, #0000); }
 .alert { border-color: color-mix(in oklab, currentColor 28%, transparent); }
 .badge-ghost, .badge-soft { border-color: color-mix(in oklab, currentColor 30%, transparent); }
 .steps .step::after { box-shadow: 0 0 0 1px var(--outline); }
-.menu .menu-active { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-neutral), #000 20%); }
+/* The current page in the sidebar: a light blue highlight with deep blue text, as on AdviceIT. */
+.menu { --menu-active-bg: color-mix(in oklab, var(--color-primary) 14%, var(--color-base-100)); --menu-active-fg: var(--color-secondary); }
+.menu .menu-active { font-weight: 600; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent); }
 .tabs-box .tab-active { box-shadow: 0 0 0 1px var(--outline); }
 /* daisyUI fades stat labels and unselected tabs to 50-60%, below 4.5:1 on tinted backgrounds. */
 .stat-title, .stat-desc, .table :where(thead, tfoot) { color: var(--text-secondary); }
@@ -145,11 +162,11 @@
 .tabs .tab:not(.tab-active):not([disabled]):hover { color: var(--color-base-content); }
 
 /* Soft and outline styles print their text in the status colour. Warning and accent are light shades
-   (filled, they carry dark text), so on the light theme their text gets a deep version for 4.5:1. */
-:root:not([data-theme="earth-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-warning,
-:root:not([data-theme="earth-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-warning { color: oklch(42% 0.1 62); }
-:root:not([data-theme="earth-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-accent,
-:root:not([data-theme="earth-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-accent { color: oklch(42% 0.08 75); }
+   (filled, they carry dark text), so on the light theme their text gets a deep amber for 4.5:1. */
+:root:not([data-theme="planner-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-warning,
+:root:not([data-theme="planner-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-warning,
+:root:not([data-theme="planner-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-accent,
+:root:not([data-theme="planner-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-accent { color: #8a5a0b; }
 
 /* ---- Charts (SVG drawn by charts.js) ---- */
 [hidden] { display: none !important; }

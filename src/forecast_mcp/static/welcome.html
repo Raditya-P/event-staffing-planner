@@ -6,13 +6,16 @@
 <title>Event Staffing Planner</title>
 <meta name="description" content="See how many guests will arrive at each entrance, why the forecast is unsure, and pick a staffing plan. A research prototype.">
 <link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
+<link rel="icon" href="/static/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
 </head>
-<body class="min-h-screen bg-base-200">
-<header class="navbar bg-base-100 px-4 shadow-sm">
+<body class="min-h-screen bg-base-100">
+<header class="navbar border-b border-base-300 bg-base-100 px-4">
   <div class="navbar-start">
-    <a href="/welcome" class="flex items-center gap-2 whitespace-nowrap font-bold text-lg">
-      <svg viewBox="0 0 32 32" class="size-8 shrink-0" aria-hidden="true"><rect x="2" y="6" width="28" height="22" rx="7" fill="var(--color-primary)"/><path d="M9 28V17a7 7 0 0 1 14 0v11" fill="var(--color-base-100)"/><circle cx="16" cy="13" r="2.5" fill="var(--color-secondary)"/></svg>
-      <span><span class="hidden sm:inline">Event </span>Staffing Planner</span>
+    <a href="/welcome" class="flex items-center gap-2.5 whitespace-nowrap text-xl">
+      <img src="/static/brand/logo.svg" class="size-9 shrink-0" alt="">
+      <span class="brand-name"><span class="hidden sm:inline">Event </span>Staffing <span class="text-primary">Planner</span></span>
     </a>
   </div>
   <div class="navbar-end gap-2">
@@ -70,7 +73,7 @@
           </div>
         </div>
         <div role="alert" class="alert alert-info alert-soft">
-          <span><strong>The hard part:</strong> nobody knows exactly how many guests will come. Rain, a concert in town or a new car park can all change it.</span>
+          <span>Nobody knows exactly how many guests will come. Rain, a concert in town or a new car park can all change it.</span>
         </div>
       </section>
 
@@ -79,13 +82,13 @@
         <h2 class="text-2xl font-bold">What this tool does</h2>
         <ul class="steps steps-vertical">
           <li class="step step-primary" data-content="1">
-            <div class="text-left py-2"><strong>It predicts arrivals</strong><br><span class="text-base-content/75">For each entrance and hour: the most likely number of guests, plus a range for good and bad days.</span></div>
+            <div class="text-left py-2"><strong>Predicts arrivals</strong><br><span class="text-base-content/75">For each entrance and hour: the most likely number of guests, plus a range for good and bad days.</span></div>
           </li>
           <li class="step step-primary" data-content="2">
-            <div class="text-left py-2"><strong>It listens to what you know</strong><br><span class="text-base-content/75">Tell it about roadworks, another event or a schedule change. Nothing changes until you confirm.</span></div>
+            <div class="text-left py-2"><strong>Listens to what you know</strong><br><span class="text-base-content/75">Tell it about roadworks, another event or a schedule change. Nothing changes until you confirm.</span></div>
           </li>
           <li class="step step-primary" data-content="3">
-            <div class="text-left py-2"><strong>It suggests staffing plans</strong><br><span class="text-base-content/75">From cheapest to shortest queues. You pick the balance that suits you.</span></div>
+            <div class="text-left py-2"><strong>Suggests staffing plans</strong><br><span class="text-base-content/75">From cheapest to shortest queues. You pick the balance that suits you.</span></div>
           </li>
         </ul>
         <p class="text-base-content/70">You can use it on this website, or just by chatting with Claude.</p>
@@ -94,7 +97,7 @@
       <!-- 4. About this prototype -->
       <section data-step="3" hidden class="page-enter space-y-4">
         <h2 class="text-2xl font-bold">About this prototype</h2>
-        <p class="text-base-content/80">This is a research prototype. It's worth knowing what is real and what isn't.</p>
+        <p class="text-base-content/80">This is a research prototype. Here is what is made up and what is calculated.</p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="card bg-secondary/12">
             <div class="card-body p-4">
@@ -104,7 +107,7 @@
           </div>
           <div class="card bg-primary/12">
             <div class="card-body p-4">
-              <h3 class="font-bold">The numbers are really calculated</h3>
+              <h3 class="font-bold">The numbers are calculated</h3>
               <p class="text-sm text-base-content/80">Nothing on screen is faked. Every forecast and plan is worked out live from that history by a forecasting model and an optimization algorithm.</p>
             </div>
           </div>
