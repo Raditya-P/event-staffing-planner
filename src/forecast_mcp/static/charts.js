@@ -31,6 +31,25 @@
   const eur = (n) => "EUR " + fmt(n);
   const pct = (n) => Math.round(n * 100) + "%";
 
+  /* Two wordings for the same numbers (the dashboard's Wording preference). The chat panel keeps "technical". */
+  const WORDS = {
+    technical: {
+      median: "Median", range: "80% range", line: "median", band: "80% range", p90: "P90 wait",
+      vol: "Day-to-day variation", hist: "Limited history",
+      volNote: "covered by a staffing buffer", histNote: "reducible with local knowledge",
+      backtest: (c) => `Backtest: on days held out from training, ${c} of actual arrivals fell within the 80% range (target: 80%).`,
+    },
+    plain: {
+      median: "Most likely", range: "Likely range", line: "most likely", band: "likely range (8 days in 10)", p90: "Busy-day wait",
+      vol: "Normal ups and downs", hist: "Little past data",
+      volNote: "plan a few extra staff", histNote: "what you know can help",
+      backtest: (c) => `On past days the model had not seen, the likely range held the actual number ${c} of the time (the aim is 8 times in 10).`,
+    },
+  };
+  let words = WORDS.technical;
+  function setWording(mode) { words = WORDS[mode] || WORDS.technical; }
+  const uncertaintyLabels = () => ({ volatility: words.vol, missing_history: words.hist });
+
   function niceStep(max, ticks) {
     const raw = max / Math.max(ticks, 1);
     const mag = Math.pow(10, Math.floor(Math.log10(raw || 1)));
@@ -91,11 +110,11 @@
       const head = h("div", { class: "fc-card-head" }, card);
       h("div", { class: "fc-card-title" }, head, series.gate_name);
       const meta = h("div", { class: "fc-card-meta" }, head);
-      meta.textContent = `About ${fmt(series.day_total.p50)} guests expected (80% range: ${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
+      meta.textContent = `About ${fmt(series.day_total.p50)} guests expected (${words.range.toLowerCase()}: ${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
     }
     if (opts.head !== false && series.history && series.history.thin) {
       const badge = h("div", { class: "fc-badge", title: "This entrance has only a few days of data" }, card);
-      badge.textContent = `Limited history: ${series.history.days} days`;
+      badge.textContent = `${words.hist}: ${series.history.days} days`;
     }
 
     const pts = series.points;
@@ -151,8 +170,8 @@
       for (const c of [cross1, cross2]) { c.setAttribute("x1", x(i)); c.setAttribute("x2", x(i)); c.setAttribute("visibility", "visible"); }
       dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(p.p50)); dot.setAttribute("visibility", "visible");
       tooltip.show(cx, cy, `${series.gate_name} · ${p.hour}`, [
-        { name: "Median", value: fmt(p.p50), key: "var(--series-1)" },
-        { name: "80% range", value: `${fmt(p.p10)}–${fmt(p.p90)}` },
+        { name: words.median, value: fmt(p.p50), key: "var(--series-1)" },
+        { name: words.range, value: `${fmt(p.p10)}–${fmt(p.p90)}` },
         { name: labels.volatility, value: `±${fmt(p.sd_volatility)}`, key: "var(--series-1)", keyShape: "rect" },
         { name: labels.missing_history, value: `±${fmt(p.sd_missing_history)} (${pct(p.share_missing_history)})`, key: "var(--series-2)", keyShape: "rect" },
       ]);
@@ -183,12 +202,12 @@
     root.textContent = "";
     root.classList.add("fc-root");
     const tooltip = Tooltip(root);
-    const labels = forecast.uncertainty_labels || { volatility: "Day-to-day variation", missing_history: "Limited history" };
+    const labels = uncertaintyLabels();
     if (opts.title !== false) {
       h("div", { class: "fc-h" }, root, "Arrivals per entrance and hour");
       const t = forecast.totals.day;
       h("div", { class: "fc-sub" }, root,
-        `${forecast.date} · line = median, band = 80% range · day total about ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
+        `${forecast.date} · line = ${words.line}, band = ${words.band} · day total about ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
     }
     if (opts.legend !== false) uncertaintyLegend(root, labels);
 
@@ -199,7 +218,7 @@
 
     const notes = (forecast.data_notes || []).map((n) => n.text);
     const bt = forecast.backtest;
-    if (bt) notes.push(`Backtest: on days held out from training, ${pct(bt.coverage_p10_p90)} of actual arrivals fell within the 80% range (target: 80%).`);
+    if (bt) notes.push(words.backtest(pct(bt.coverage_p10_p90)));
     if (notes.length && opts.notes !== false) {
       const ul = h("ul", { class: "fc-notes" }, root);
       for (const n of notes) h("li", {}, ul, n);
@@ -219,9 +238,9 @@
   function uncertaintyLegend(root, labels) {
     const legend = h("div", { class: "fc-legend" }, root);
     const l1 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-1);opacity:.55" }, l1);
-    l1.appendChild(document.createTextNode(`${labels.volatility}: covered by a staffing buffer`));
+    l1.appendChild(document.createTextNode(`${labels.volatility}: ${words.volNote}`));
     const l2 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-2)" }, l2);
-    l2.appendChild(document.createTextNode(`${labels.missing_history}: reducible with local knowledge`));
+    l2.appendChild(document.createTextNode(`${labels.missing_history}: ${words.histNote}`));
     return legend;
   }
 
@@ -231,7 +250,7 @@
     root.textContent = "";
     root.classList.add("fc-root");
     const series = forecast.series.find((s) => s.gate_id === gateId) || forecast.series[0];
-    const labels = forecast.uncertainty_labels || { volatility: "Day-to-day variation", missing_history: "Limited history" };
+    const labels = uncertaintyLabels();
     const tooltip = Tooltip(root);
     if (opts.legend) uncertaintyLegend(root, labels);
     const width = Math.max(300, Math.min(900, Math.round(root.clientWidth || 640)));
@@ -254,7 +273,7 @@
     if (opts.title !== false) {
       h("div", { class: "fc-h" }, root, "Staff cost versus expected waiting time");
       h("div", { class: "fc-sub" }, root,
-        `Each point is one staffing plan (${sols.length} in total). Plans further right cost more; lower plans have shorter queues. The line above each point shows the P90 wait.` +
+        `Each point is one staffing plan (${sols.length} in total). Plans further right cost more; lower plans have shorter queues. The line above each point shows the ${words.p90.toLowerCase()}.` +
         (opts.editable ? " Click a dot to choose it." : ""));
     }
     const legend = h("div", { class: "fc-legend" }, root);
@@ -314,7 +333,7 @@
       const show = (cx, cy) => tooltip.show(cx, cy, `Plan ${s.id}${s.label ? " · " + named[s.label] : ""}`, [
         { name: "Staff cost", value: `${eur(s.staff_cost)} (${s.staff_hours} staff-h)` },
         { name: "Expected wait", value: `${fmt1(s.expected_wait)} min` },
-        { name: "P90 wait", value: `${fmt1(s.wait_p90)} min` },
+        { name: words.p90, value: `${fmt1(s.wait_p90)} min` },
         { name: `Days with average wait over ${result.wait_threshold_min} min`, value: pct(s.prob_wait_over_threshold) },
         { name: "Peak hour", value: `${s.peak_hour}, ${fmt1(s.peak_hour_wait)} min` },
       ]);
@@ -349,7 +368,7 @@
     tableToggle(root, "plans table", (wrap) => {
       const table = h("table", { class: "fc-table" }, wrap);
       const head = h("tr", {}, h("thead", {}, table));
-      for (const c of ["Plan", "", "Staff-hours", "Cost", "Expected wait", "P90 wait", `P(avg > ${result.wait_threshold_min} min)`]) h("th", {}, head, c);
+      for (const c of ["Plan", "", "Staff-hours", "Cost", "Expected wait", words.p90, `P(avg > ${result.wait_threshold_min} min)`]) h("th", {}, head, c);
       const body = h("tbody", {}, table);
       for (const s of sols) {
         const tr = h("tr", {}, body);
@@ -393,5 +412,65 @@
     for (const t of totals) h("td", {}, tr, t);
   }
 
-  window.FC = { renderForecast, renderGate, renderTradeoff, renderSchedule, uncertaintyLegend, fmt, fmt1, eur, pct, h, svg };
+  /* ---------- stress test: one fixed plan, arrivals above and below the forecast ---------- */
+  function renderStress(root, data, opts) {
+    opts = opts || {};
+    root.textContent = "";
+    root.classList.add("fc-root");
+    const tooltip = Tooltip(root);
+    const pts = data.points;
+    const name = (f) => (Math.abs(f - 1) < 1e-9 ? "Forecast" : `${f > 1 ? "+" : "−"}${Math.round(Math.abs(f - 1) * 100)}%`);
+    const legend = h("div", { class: "fc-legend" }, root);
+    const a = h("span", {}, legend); h("span", { class: "fc-key-line", style: "background:var(--series-1)" }, a);
+    a.appendChild(document.createTextNode("Average wait"));
+    const b = h("span", {}, legend); h("span", { class: "fc-key-line", style: "background:var(--series-2)" }, b);
+    b.appendChild(document.createTextNode(words.p90));
+
+    const W = Math.max(300, Math.min(760, Math.round(root.clientWidth || 560))), H = 220, m = { l: 40, r: 16, t: 14, b: 36 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const { max, step } = niceMax(Math.max(...pts.map((p) => p.wait_p90), data.wait_threshold_min) * 1.08, 4);
+    const x = (i) => m.l + (i / Math.max(pts.length - 1, 1)) * iw;
+    const y = (v) => m.t + ih - (v / max) * ih;
+    const chart = svg("svg", { class: "fc-svg", viewBox: `0 0 ${W} ${H}`, role: "group",
+      "aria-label": "Average and busy-day waiting time of the selected plan for arrivals below and above the forecast" }, root);
+    for (let v = 0; v <= max + 1e-9; v += step) {
+      svg("line", { class: v === 0 ? "fc-baseline" : "fc-gridline", x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }, chart);
+      svgText(chart, fmt(v), { x: m.l - 6, y: y(v) + 3, "text-anchor": "end" });
+    }
+    const thr = data.wait_threshold_min;
+    svg("line", { x1: m.l, x2: W - m.r, y1: y(thr), y2: y(thr), stroke: "var(--text-muted)", "stroke-dasharray": "4 4" }, chart);
+    svgText(chart, `${fmt(thr)} min`, { x: W - m.r, y: y(thr) - 4, "text-anchor": "end", class: "fc-label fc-halo" });
+    pts.forEach((p, i) => svgText(chart, name(p.factor), { x: x(i), y: H - 18, "text-anchor": "middle",
+      class: Math.abs(p.factor - opts.selected) < 1e-9 ? "fc-label-strong" : "" }));
+    svgText(chart, "Arrivals compared with the forecast", { x: m.l + iw / 2, y: H - 3, "text-anchor": "middle", class: "fc-label" });
+    svgText(chart, "Minutes per guest", { x: m.l - 34, y: 8, class: "fc-label" });
+    for (const [key, color, dash] of [["wait_p90", "var(--series-2)", "5 4"], ["expected_wait", "var(--series-1)", null]]) {
+      svg("path", { d: "M" + pts.map((p, i) => `${x(i)},${y(p[key])}`).join(" L"), fill: "none", stroke: color, "stroke-width": 2,
+        "stroke-linejoin": "round", ...(dash ? { "stroke-dasharray": dash } : {}) }, chart);
+    }
+    pts.forEach((p, i) => {
+      const sel = Math.abs(p.factor - opts.selected) < 1e-9;
+      if (sel) svg("line", { class: "fc-crosshair", x1: x(i), x2: x(i), y1: m.t, y2: m.t + ih }, chart);
+      const g = svg("g", { class: "fc-point", tabindex: 0, role: opts.onSelect ? "button" : "img",
+        "aria-label": `${name(p.factor)}: average wait ${fmt1(p.expected_wait)} min, ${words.p90.toLowerCase()} ${fmt1(p.wait_p90)} min` }, chart);
+      svg("circle", { cx: x(i), cy: y(p.expected_wait), r: 12, fill: "transparent" }, g);
+      svg("circle", { cx: x(i), cy: y(p.wait_p90), r: sel ? 5 : 3.5, fill: "var(--series-2)", stroke: "var(--surface-1)", "stroke-width": 1.5 }, g);
+      svg("circle", { cx: x(i), cy: y(p.expected_wait), r: sel ? 6 : 4, fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 2 }, g);
+      const show = (cx, cy) => tooltip.show(cx, cy, `Arrivals: ${name(p.factor)}`, [
+        { name: "Average wait", value: `${fmt1(p.expected_wait)} min`, key: "var(--series-1)" },
+        { name: words.p90, value: `${fmt1(p.wait_p90)} min`, key: "var(--series-2)" },
+        { name: `Days over ${fmt(thr)} min`, value: pct(p.prob_wait_over_threshold) },
+      ]);
+      g.addEventListener("pointermove", (e) => show(e.clientX, e.clientY));
+      g.addEventListener("pointerleave", () => tooltip.hide());
+      g.addEventListener("focus", () => { const r = g.getBoundingClientRect(); show(r.left + r.width / 2, r.top); });
+      g.addEventListener("blur", () => tooltip.hide());
+      if (opts.onSelect) {
+        g.addEventListener("click", () => opts.onSelect(p.factor));
+        g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); opts.onSelect(p.factor); } });
+      }
+    });
+  }
+
+  window.FC = { renderForecast, renderGate, renderTradeoff, renderSchedule, renderStress, uncertaintyLegend, setWording, fmt, fmt1, eur, pct, h, svg };
 })();

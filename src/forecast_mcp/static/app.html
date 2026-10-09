@@ -97,6 +97,26 @@
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 
+<dialog id="explainer" class="modal modal-bottom sm:modal-middle" aria-labelledby="ex-title">
+  <div class="modal-box max-w-3xl p-0">
+    <div class="flex items-center justify-between gap-3 border-b border-base-300 px-6 py-4">
+      <h3 class="text-lg font-bold" id="ex-title"></h3>
+      <form method="dialog"><button class="btn btn-ghost btn-sm">Close</button></form>
+    </div>
+    <div class="space-y-4 px-6 pt-4">
+      <ul class="steps w-full text-xs *:min-w-0" id="ex-steps" aria-label="Explanation steps"></ul>
+      <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm" id="ex-prefs"></div>
+      <div class="space-y-3" id="ex-body" aria-live="polite"></div>
+    </div>
+    <div class="mt-4 flex items-center justify-between border-t border-base-300 px-6 py-4">
+      <button class="btn btn-ghost" type="button" id="ex-back">Back</button>
+      <span class="text-sm text-base-content/70" id="ex-count"></span>
+      <button class="btn btn-primary" type="button" id="ex-next">Next</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
 <div class="toast toast-end toast-bottom z-50" id="toasts" aria-live="polite"></div>
 <script src="/static/charts.js"></script>
 <script src="/static/app.js"></script>

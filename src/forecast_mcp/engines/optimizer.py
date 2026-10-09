@@ -40,6 +40,8 @@ OBJECTIVES = [
 ]
 WAIT_THRESHOLD_MIN = 10.0
 MIN_WAIT_GAIN_MIN = 0.05
+CHECK_SAMPLES = 300  # sampled days every final plan is scored on
+STRESS_FACTORS = (0.8, 0.9, 1.0, 1.1, 1.2, 1.3)  # arrivals relative to the forecast, for the stress test
 
 
 @dataclass
@@ -283,7 +285,7 @@ def optimize(
     spec = build_spec(event, constraints, constraint_ids)
     rng = np.random.default_rng(seed)
     search_days = reroute(sample_arrivals(member_mu, member_sd, samples, rng), spec.closed)
-    check_days = reroute(sample_arrivals(member_mu, member_sd, 300, np.random.default_rng(seed + 1000)), spec.closed)
+    check_days = _check_days(spec, member_mu, member_sd, seed)
 
     free = (spec.xu > spec.xl).ravel()
     G, H = spec.xl.shape
@@ -361,7 +363,7 @@ def optimize(
 
     return {
         "algorithm": {**ALGORITHM, "pop_size": pop_size, "generations": generations, "search_samples": samples,
-                      "check_samples": 300, "seed": seed},
+                      "check_samples": CHECK_SAMPLES, "seed": seed},
         "objectives": OBJECTIVES,
         "wait_threshold_min": WAIT_THRESHOLD_MIN,
         "max_expected_wait": max_expected_wait,
@@ -380,13 +382,50 @@ def optimize(
             "Visitors of a closed gate use the other open gates, in proportion to their usual volume.",
             "Waiting combines a backlog carried between hours with random congestion within each hour "
             "(Sakasegawa's M/M/c approximation).",
-            "Plans are scored on 300 sampled days drawn from the forecast, not only its median.",
+            f"Plans are scored on {CHECK_SAMPLES} sampled days drawn from the forecast, not only its median.",
             f"Only plans with an expected wait of at most {max_expected_wait:.0f} minutes are searched "
             "(if none exists under the constraints, the best possible plans are shown and flagged).",
         ],
         "solutions": solutions,
         "recommended_id": solutions[knee]["id"],
     }
+
+
+def _check_days(spec: StaffingProblemSpec, member_mu: np.ndarray, member_sd: np.ndarray, seed: int) -> np.ndarray:
+    from .forecast import sample_arrivals
+
+    return reroute(sample_arrivals(member_mu, member_sd, CHECK_SAMPLES, np.random.default_rng(seed + 1000)), spec.closed)
+
+
+def stress_test(
+    event: dict,
+    constraints: list,
+    constraint_ids: list[str],
+    member_mu: np.ndarray,
+    member_sd: np.ndarray,
+    schedule: dict[str, list[int]],
+    *,
+    seed: int = 7,
+    factors: tuple[float, ...] = STRESS_FACTORS,
+) -> dict:
+    """How one fixed plan copes if arrivals are lower or higher than forecast: the plan is scored on the same
+    sampled days the optimizer checked it on, with every day's arrivals scaled. At factor 1.0 the numbers equal
+    the plan's own; nothing is re-optimized."""
+    spec = build_spec(event, constraints, constraint_ids)
+    days = _check_days(spec, member_mu, member_sd, seed)
+    staff = np.array([schedule[g] for g in spec.gate_ids], dtype=int)[None, :, :]
+    points = []
+    for f in factors:
+        s = score(staff, days * f, spec)
+        points.append({
+            "factor": f,
+            "expected_wait": round(float(s["expected_wait"][0]), 2),
+            "wait_p90": round(float(s["wait_p90"][0]), 2),
+            "prob_wait_over_threshold": round(float(s["prob_wait_over_threshold"][0]), 3),
+            "peak_hour": f"{spec.hours[int(s['peak_hour_index'][0])]:02d}:00",
+            "peak_hour_wait": round(float(s["peak_hour_wait"][0]), 2),
+        })
+    return {"wait_threshold_min": WAIT_THRESHOLD_MIN, "check_samples": CHECK_SAMPLES, "points": points}
 
 
 def explain_choice(result: dict, solution_id: str) -> str:

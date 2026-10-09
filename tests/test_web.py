@@ -29,6 +29,8 @@ def test_pages(client):
     for asset in ("brand/logo.svg", "brand/favicon-32.png", "brand/icon-512.png", "fonts/instrument-sans-latin-wght.woff2"):
         assert client.get(f"/static/{asset}").status_code == 200  # the logo and fonts the pages and connector icon point to
     assert client.get("/privacy").status_code == 200
+    refs = client.get("/references")
+    assert refs.status_code == 200 and "NSGA-II" in refs.text and "<script>" not in refs.text
 
 
 def test_public_facts_come_from_a_computed_forecast(client):
@@ -71,3 +73,20 @@ def test_dashboard_flow(client, event_id):
 def test_unknown_ids_are_404(client):
     assert client.get("/api/scenarios/scn_nope").status_code == 404
     assert client.get("/api/events/evt_nope").status_code == 404
+
+
+def test_stress_test_reproduces_the_plan_at_the_forecast(client, event_id):
+    detail = client.get(f"/api/events/{event_id}").json()
+    sid = next(s["id"] for s in detail["scenarios"] if s["kind"] == "official")
+    plan = client.get(f"/api/scenarios/{sid}").json()["selected_solution"]
+
+    out = client.get(f"/api/scenarios/{sid}/stress").json()
+    assert out["solution_id"] == plan["id"]
+    base = next(p for p in out["points"] if p["factor"] == 1.0)
+    # Same model, inputs, seed and sampled days as the run, so at the forecast the numbers are the plan's own.
+    assert abs(base["expected_wait"] - plan["expected_wait"]) < 0.011
+    assert abs(base["wait_p90"] - plan["wait_p90"]) < 0.011
+    waits = [p["expected_wait"] for p in out["points"]]
+    assert waits[-1] > waits[0]  # 30% more guests than forecast wait longer than 20% fewer
+
+    assert client.get(f"/api/scenarios/{sid}/stress?solution_id=nope").status_code == 404

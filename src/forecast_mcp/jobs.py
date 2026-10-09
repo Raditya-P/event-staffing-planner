@@ -24,7 +24,7 @@ from .config import settings
 from .db import Event, Observation, Run, Scenario, SessionLocal, Venue, session_scope, utcnow
 from .engines.contract import build_forecast
 from .engines.forecast import DayInputs, get_forecaster
-from .engines.optimizer import explain_choice, optimize
+from .engines.optimizer import explain_choice, optimize, stress_test
 from .services import active_constraint_rows, event_summary, gate_names
 
 log = logging.getLogger(__name__)
@@ -146,6 +146,32 @@ def day_inputs(ev: Event, parsed: list, ids: list[str], notes: dict[str, str | N
     return DayInputs(ev.day_type, ev.weather, show_start, competing), assumptions
 
 
+def _scenario_inputs(s, sc: Scenario):
+    """Everything a forecast for this scenario needs: event facts, its active constraints and the model inputs."""
+    from .db import Note
+
+    ev = s.get(Event, sc.event_id)
+    event = event_summary(ev)
+    rows = active_constraint_rows(s, sc.id)
+    ids = [r.id for r in rows]
+    parsed = [C.parse_constraint({"type": r.type, **r.params}) for r in rows]
+    notes = {r.id: (s.get(Note, r.note_id).text if r.note_id else None) for r in rows}
+    inputs, assumptions = day_inputs(ev, parsed, ids, notes, rows)
+    venue_key = (ev.venue.id, ev.venue.history_version, [g.id for g in ev.venue.gates], ev.venue.history_fingerprint)
+    return event, parsed, ids, inputs, assumptions, venue_key
+
+
+def stress_test_plan(scenario_id: str, schedule: dict[str, list[int]]) -> dict:
+    """Score a plan of the scenario's current result with arrivals above and below the forecast. The forecast is
+    rebuilt exactly as the run built it (same model, inputs and seed), so the sampled days are the same ones."""
+    with session_scope() as s:
+        event, parsed, ids, inputs, assumptions, venue_key = _scenario_inputs(s, s.get(Scenario, scenario_id))
+    model = forecaster_for(*venue_key)
+    _, mu, sd = build_forecast(model, event, inputs, assumptions, scenario_id=scenario_id, forecast_id="stress",
+                               seed=settings.seed)
+    return stress_test(event, parsed, ids, mu, sd, schedule, seed=settings.seed)
+
+
 def _set(run_id: str, **fields) -> None:
     with session_scope() as s:
         run = s.get(Run, run_id)
@@ -171,8 +197,6 @@ def _bump_event_of(run_id: str) -> None:
 
 
 def _execute(run_id: str) -> None:
-    from .db import Note
-
     with session_scope() as s:
         run = s.get(Run, run_id)
         if run is None or run.status != "running" or run.claimed_by != WORKER_ID:
@@ -185,15 +209,7 @@ def _execute(run_id: str) -> None:
             return
         run.stage = "forecast"
         sc = s.get(Scenario, run.scenario_id)
-        ev = s.get(Event, sc.event_id)
-        event = event_summary(ev)
-        rows = active_constraint_rows(s, sc.id)
-        ids = [r.id for r in rows]
-        parsed = [C.parse_constraint({"type": r.type, **r.params}) for r in rows]
-        notes = {r.id: (s.get(Note, r.note_id).text if r.note_id else None) for r in rows}
-        inputs, assumptions = day_inputs(ev, parsed, ids, notes, rows)
-        venue_key = (ev.venue.id, ev.venue.history_version, [g.id for g in ev.venue.gates],
-                     ev.venue.history_fingerprint)
+        event, parsed, ids, inputs, assumptions, venue_key = _scenario_inputs(s, sc)
         scenario_id, scenario_name = sc.id, sc.name
 
     # Outside the transaction: the first call trains the model, which takes a few seconds.
