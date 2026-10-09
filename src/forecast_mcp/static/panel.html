@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="earth">
+<html lang="en" data-theme="planner">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Forecast panel</title>
+<title>Event Staffing Planner</title>
 <style>
 /*__APP_CSS__*/
 html, body { background: transparent; }
@@ -20,7 +20,7 @@ import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@2.0.3/app-
 
 const { h, fmt, fmt1, eur, pct } = window.FC;
 const root = document.getElementById("app");
-const app = new App({ name: "Forecast & staffing panel", version: "0.2.0" });
+const app = new App({ name: "Event Staffing Planner", version: "0.2.0" });
 let current = null;      // last structured payload
 let pollTimer = null;
 let gate = "all";
@@ -28,7 +28,7 @@ let gate = "all";
 function applyContext(ctx) {
   if (!ctx) return;
   // Follow the chat's light/dark mode with the website's two themes.
-  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme === "dark" ? "earth-dark" : "earth";
+  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme === "dark" ? "planner-dark" : "planner";
   const ins = ctx.safeAreaInsets;
   if (ins) root.style.padding = `${12 + ins.top}px ${12 + ins.right}px ${12 + ins.bottom}px ${12 + ins.left}px`;
 }

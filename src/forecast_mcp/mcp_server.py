@@ -19,7 +19,7 @@ from mcp.server.apps import Apps, ResourceCsp
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import MCPServer
-from mcp_types import CallToolResult, TextContent, ToolAnnotations
+from mcp_types import CallToolResult, Icon, TextContent, ToolAnnotations
 from pydantic import Field
 
 from . import jobs
@@ -36,7 +36,7 @@ STATIC = Path(__file__).parent / "static"
 RUN_WAIT_SECONDS = 25.0
 
 INSTRUCTIONS = """\
-Audience forecasting and gate staffing for event planners (prototype; data is synthetic).
+Event Staffing Planner: arrival forecasts and gate staffing plans for event planners (research prototype; the event data is synthetic).
 
 How to work with this server:
 1. Call list_events to get event, scenario and gate ids. Never guess ids.
@@ -319,16 +319,28 @@ def panel_html() -> str:
     html = (STATIC / "panel.html").read_text(encoding="utf-8")
     charts = (STATIC / "charts.js").read_text(encoding="utf-8")
     styles = (STATIC / "app.css").read_text(encoding="utf-8")
-    # The panel runs in Claude's sandbox, not on this site, so the font travels inside the stylesheet.
-    font = base64.b64encode((STATIC / "fonts" / "ibm-plex-sans-latin-wght.woff2").read_bytes()).decode()
-    styles = styles.replace("/static/fonts/ibm-plex-sans-latin-wght.woff2", f"data:font/woff2;base64,{font}")
+    # The panel runs in Claude's sandbox, not on this site, so the fonts travel inside the stylesheet.
+    for name in ("ibm-plex-sans-latin-wght.woff2", "instrument-sans-latin-wght.woff2"):
+        font = base64.b64encode((STATIC / "fonts" / name).read_bytes()).decode()
+        styles = styles.replace(f"/static/fonts/{name}", f"data:font/woff2;base64,{font}")
     return html.replace("/*__CHARTS_JS__*/", charts).replace("/*__APP_CSS__*/", styles)
+
+
+def server_icons() -> list[Icon]:
+    """The logo, for clients that show an icon next to the connector. Served from this site when it has a
+    public address; otherwise sent inline so a local server still has one."""
+    if settings.public_base_url:
+        base = settings.public_base_url.rstrip("/")
+        return [Icon(src=f"{base}/static/brand/logo.svg", mime_type="image/svg+xml", sizes=["any"]),
+                Icon(src=f"{base}/static/brand/icon-512.png", mime_type="image/png", sizes=["512x512"])]
+    svg = base64.b64encode((STATIC / "brand" / "logo.svg").read_bytes()).decode()
+    return [Icon(src=f"data:image/svg+xml;base64,{svg}", mime_type="image/svg+xml", sizes=["any"])]
 
 
 apps.add_html_resource(
     PANEL_URI,
     panel_html(),
-    name="Forecast and staffing panel",
+    name="Event Staffing Planner panel",
     description="Interactive forecast and trade-off charts with confirm and promote buttons.",
     csp=ResourceCsp(resource_domains=["https://unpkg.com"]),
     prefers_border=True,
@@ -353,11 +365,12 @@ def _auth_kwargs() -> dict:
 def build_server(auth: AuthSettings | None = None, token_verifier=None) -> MCPServer:
     # Extensions are read when the server is built, so this runs after every @apps.tool above.
     server = MCPServer(
-        name="forecast-mcp",
-        title="Event forecast & staffing",
+        name="event-staffing-planner",
+        title="Event Staffing Planner",
         version="0.1.0",
         instructions=INSTRUCTIONS,
         website_url=settings.public_base_url or None,
+        icons=server_icons(),
         extensions=[apps],
         auth=auth,
         token_verifier=token_verifier,

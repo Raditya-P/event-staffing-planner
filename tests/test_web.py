@@ -22,10 +22,12 @@ def test_pages(client):
     assert "<script>" not in welcome  # strict CSP: no inline scripts on our own pages
     panel = client.get("/dev/panel.html").text
     assert "__APP_CSS__" not in panel and "__CHARTS_JS__" not in panel and "renderForecast" in panel
-    assert "earth-dark" in panel  # the website's theme is inlined into the chat panel
+    assert "planner-dark" in panel  # the website's theme is inlined into the chat panel
     for asset in ("app.css", "app.js", "charts.js", "welcome.js", "privacy.js"):
         assert client.get(f"/static/{asset}").status_code == 200
     assert client.get("/static/fonts/ibm-plex-sans-latin-wght.woff2").headers["content-type"] == "font/woff2"
+    for asset in ("brand/logo.svg", "brand/favicon-32.png", "brand/icon-512.png", "fonts/instrument-sans-latin-wght.woff2"):
+        assert client.get(f"/static/{asset}").status_code == 200  # the logo and fonts the pages and connector icon point to
     assert client.get("/privacy").status_code == 200
 
 

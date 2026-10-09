@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Event Staffing Planner: arrival forecasts and gate staffing plans for event planners, in Claude and on the web"
+abstract: "A research prototype that forecasts guest arrivals per entrance and hour with an 80% range split into day-to-day variation and limited history, turns planners' notes into constraints they confirm before anything changes, and finds staffing plans that trade staff cost against guest waiting with a multi-objective evolutionary algorithm (NSGA-II). It runs as a website and as an MCP server whose charts appear inside Claude."
+authors:
+  - family-names: "Pratama"
+    given-names: "Raditya"
+    affiliation: "Department of Information Systems, Institut Teknologi Sepuluh Nopember"
+version: "0.1.0"
+date-released: "2026-10-09"
+year: 2026
+license: MIT
+repository-code: "https://github.com/Raditya-P/event-staffing-planner"
+url: "https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/"
+keywords:
+  - forecast uncertainty
+  - staff scheduling
+  - multi-objective optimization
+  - human-AI interaction
+  - Model Context Protocol
