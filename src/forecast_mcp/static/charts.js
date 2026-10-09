@@ -91,11 +91,11 @@
       const head = h("div", { class: "fc-card-head" }, card);
       h("div", { class: "fc-card-title" }, head, series.gate_name);
       const meta = h("div", { class: "fc-card-meta" }, head);
-      meta.textContent = `About ${fmt(series.day_total.p50)} guests today (likely ${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
+      meta.textContent = `About ${fmt(series.day_total.p50)} guests expected (80% range: ${fmt(series.day_total.p10)}–${fmt(series.day_total.p90)})`;
     }
     if (opts.head !== false && series.history && series.history.thin) {
-      const badge = h("div", { class: "fc-badge", title: "This gate has only a few days of data" }, card);
-      badge.textContent = `Little history: ${series.history.days} days`;
+      const badge = h("div", { class: "fc-badge", title: "This entrance has only a few days of data" }, card);
+      badge.textContent = `Limited history: ${series.history.days} days`;
     }
 
     const pts = series.points;
@@ -136,7 +136,7 @@
       if (hMiss > 0.5) svg("rect", { x: cx, y: sm.t, width: colW, height: hMiss, rx: 2, fill: "var(--series-2)" }, strip);
     });
     if (opts.strip !== false) h("div", { class: "fc-strip-label" }, card,
-      `Why it's uncertain, hour by hour: orange = ${labels.missing_history.toLowerCase()}, blue = ${labels.volatility.toLowerCase()}`);
+      `Sources of uncertainty by hour: orange = ${labels.missing_history.toLowerCase()}, blue = ${labels.volatility.toLowerCase()}`);
 
     // Hover / keyboard layer shared by both SVGs.
     const cross1 = svg("line", { class: "fc-crosshair", y1: m.t, y2: m.t + ih, visibility: "hidden" }, chart);
@@ -151,8 +151,8 @@
       for (const c of [cross1, cross2]) { c.setAttribute("x1", x(i)); c.setAttribute("x2", x(i)); c.setAttribute("visibility", "visible"); }
       dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(p.p50)); dot.setAttribute("visibility", "visible");
       tooltip.show(cx, cy, `${series.gate_name} · ${p.hour}`, [
-        { name: "Most likely", value: fmt(p.p50), key: "var(--series-1)" },
-        { name: "Likely range (8 in 10 days)", value: `${fmt(p.p10)}–${fmt(p.p90)}` },
+        { name: "Median", value: fmt(p.p50), key: "var(--series-1)" },
+        { name: "80% range", value: `${fmt(p.p10)}–${fmt(p.p90)}` },
         { name: labels.volatility, value: `±${fmt(p.sd_volatility)}`, key: "var(--series-1)", keyShape: "rect" },
         { name: labels.missing_history, value: `±${fmt(p.sd_missing_history)} (${pct(p.share_missing_history)})`, key: "var(--series-2)", keyShape: "rect" },
       ]);
@@ -185,10 +185,10 @@
     const tooltip = Tooltip(root);
     const labels = forecast.uncertainty_labels || { volatility: "Day-to-day variation", missing_history: "Limited history" };
     if (opts.title !== false) {
-      h("div", { class: "fc-h" }, root, "Guests arriving per gate and hour");
+      h("div", { class: "fc-h" }, root, "Arrivals per entrance and hour");
       const t = forecast.totals.day;
       h("div", { class: "fc-sub" }, root,
-        `${forecast.date} · line = most likely, band = likely range (8 in 10 days) · whole day about ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
+        `${forecast.date} · line = median, band = 80% range · day total about ${fmt(t.p50)} (${fmt(t.p10)}–${fmt(t.p90)})`);
     }
     if (opts.legend !== false) uncertaintyLegend(root, labels);
 
@@ -199,7 +199,7 @@
 
     const notes = (forecast.data_notes || []).map((n) => n.text);
     const bt = forecast.backtest;
-    if (bt) notes.push(`Check on past days: the likely ranges contained ${pct(bt.coverage_p10_p90)} of what really happened (aim: 80%).`);
+    if (bt) notes.push(`Backtest: on days held out from training, ${pct(bt.coverage_p10_p90)} of actual arrivals fell within the 80% range (target: 80%).`);
     if (notes.length && opts.notes !== false) {
       const ul = h("ul", { class: "fc-notes" }, root);
       for (const n of notes) h("li", {}, ul, n);
@@ -207,7 +207,7 @@
     if (opts.table !== false) tableToggle(root, "the numbers", (wrap) => {
       const table = h("table", { class: "fc-table" }, wrap);
       const head = h("tr", {}, h("thead", {}, table));
-      for (const c of ["Gate", "Hour", "p10", "Median", "p90", labels.volatility + " ±", labels.missing_history + " ±", "Share limited history"]) h("th", {}, head, c);
+      for (const c of ["Entrance", "Hour", "P10", "Median", "P90", labels.volatility + " ±", labels.missing_history + " ±", "Share from limited history"]) h("th", {}, head, c);
       const body = h("tbody", {}, table);
       for (const s of forecast.series) for (const p of s.points) {
         const tr = h("tr", {}, body);
@@ -219,9 +219,9 @@
   function uncertaintyLegend(root, labels) {
     const legend = h("div", { class: "fc-legend" }, root);
     const l1 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-1);opacity:.55" }, l1);
-    l1.appendChild(document.createTextNode(`${labels.volatility}: plan a few extra staff`));
+    l1.appendChild(document.createTextNode(`${labels.volatility}: covered by a staffing buffer`));
     const l2 = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "background:var(--series-2)" }, l2);
-    l2.appendChild(document.createTextNode(`${labels.missing_history}: what you know can help`));
+    l2.appendChild(document.createTextNode(`${labels.missing_history}: reducible with local knowledge`));
     return legend;
   }
 
@@ -252,9 +252,9 @@
     const official = opts.official || null;
 
     if (opts.title !== false) {
-      h("div", { class: "fc-h" }, root, "Staff cost vs. guest waiting");
+      h("div", { class: "fc-h" }, root, "Staff cost versus expected waiting time");
       h("div", { class: "fc-sub" }, root,
-        `Each dot is one staffing plan (${sols.length} in total). Further right costs more; lower means shorter queues. The thin line above a dot shows a bad day.` +
+        `Each point is one staffing plan (${sols.length} in total). Plans further right cost more; lower plans have shorter queues. The line above each point shows the P90 wait.` +
         (opts.editable ? " Click a dot to choose it." : ""));
     }
     const legend = h("div", { class: "fc-legend" }, root);
@@ -264,7 +264,7 @@
     b.appendChild(document.createTextNode("Selected"));
     if (official) {
       const c = h("span", {}, legend); h("span", { class: "fc-key-rect", style: "border:2px solid var(--text-muted);border-radius:50%" }, c);
-      c.appendChild(document.createTextNode("Official plan now"));
+      c.appendChild(document.createTextNode("Current official plan"));
     }
 
     // Size the drawing to the container so text stays at its real size on wide screens.
@@ -299,7 +299,7 @@
       svg("circle", { cx: x(official.staff_cost), cy: y(official.expected_wait), r: 7, fill: "none",
         stroke: "var(--text-muted)", "stroke-width": 2 }, chart);
     }
-    const named = { cheapest: "Cheapest", balanced: "Balanced", shortest_wait: "Shortest wait" };
+    const named = { cheapest: "Lowest cost", balanced: "Balanced", shortest_wait: "Shortest wait" };
     const labels = [];
     sols.forEach((s, idx) => {
       const g = svg("g", { class: "fc-point", tabindex: 0, role: opts.editable ? "button" : "img",
@@ -314,9 +314,9 @@
       const show = (cx, cy) => tooltip.show(cx, cy, `Plan ${s.id}${s.label ? " · " + named[s.label] : ""}`, [
         { name: "Staff cost", value: `${eur(s.staff_cost)} (${s.staff_hours} staff-h)` },
         { name: "Expected wait", value: `${fmt1(s.expected_wait)} min` },
-        { name: "Bad day (9 of 10 better)", value: `${fmt1(s.wait_p90)} min` },
-        { name: `Day avg over ${result.wait_threshold_min} min`, value: pct(s.prob_wait_over_threshold) },
-        { name: "Busiest hour", value: `${s.peak_hour}, ${fmt1(s.peak_hour_wait)} min` },
+        { name: "P90 wait", value: `${fmt1(s.wait_p90)} min` },
+        { name: `Days with average wait over ${result.wait_threshold_min} min`, value: pct(s.prob_wait_over_threshold) },
+        { name: "Peak hour", value: `${s.peak_hour}, ${fmt1(s.peak_hour_wait)} min` },
       ]);
       g.addEventListener("pointermove", (e) => show(e.clientX, e.clientY));
       g.addEventListener("pointerleave", () => tooltip.hide());
@@ -349,7 +349,7 @@
     tableToggle(root, "plans table", (wrap) => {
       const table = h("table", { class: "fc-table" }, wrap);
       const head = h("tr", {}, h("thead", {}, table));
-      for (const c of ["Plan", "", "Staff-h", "Cost", "Expected wait", "Bad-day wait", `P(avg > ${result.wait_threshold_min} min)`]) h("th", {}, head, c);
+      for (const c of ["Plan", "", "Staff-hours", "Cost", "Expected wait", "P90 wait", `P(avg > ${result.wait_threshold_min} min)`]) h("th", {}, head, c);
       const body = h("tbody", {}, table);
       for (const s of sols) {
         const tr = h("tr", {}, body);
@@ -364,8 +364,8 @@
     root.textContent = "";
     root.classList.add("fc-root");
     if (!opts || opts.title !== false) {
-      h("div", { class: "fc-h" }, root, `Staffed lanes per gate and hour · plan ${solution.id}`);
-      h("div", { class: "fc-sub" }, root, `${solution.staff_hours} staff-hours. Darker = more of the gate's lanes open. Grey = closed.`);
+      h("div", { class: "fc-h" }, root, `Staffed lanes per entrance and hour · plan ${solution.id}`);
+      h("div", { class: "fc-sub" }, root, `${solution.staff_hours} staff-hours. Darker = more of the entrance's lanes open. Grey = closed.`);
     }
     const wrap = h("div", { class: "fc-table-wrap" }, root);
     const table = h("table", { class: "fc-heat" }, wrap);
@@ -389,7 +389,7 @@
       });
     }
     const tr = h("tr", { class: "fc-total" }, body);
-    h("th", { class: "fc-row-head", scope: "row" }, tr, "All gates");
+    h("th", { class: "fc-row-head", scope: "row" }, tr, "All entrances");
     for (const t of totals) h("td", {}, tr, t);
   }
 

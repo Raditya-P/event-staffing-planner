@@ -21,7 +21,7 @@
     const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) { location.href = "/welcome"; throw new Error("Please sign in."); }
-    if (!res.ok) throw new Error(data.error || `Something went wrong (${res.status}).`);
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
     return data;
   }
   const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body || {}) });
@@ -72,28 +72,28 @@
   /* ---------------- explanations (the "What am I looking at?" button) ---------------- */
 
   const EXPLAIN = {
-    home: { title: "Your overview", tour: 1, body: [
-      "This page sums up the plan you are looking at: how many guests to expect, what the staffing costs, and how long guests wait.",
-      "Use the menu to go deeper, one topic at a time." ] },
+    home: { title: "Overview", tour: 1, body: [
+      "This page summarizes the selected plan: expected attendance, staffing cost and average waiting time.",
+      "Use the menu to open each topic in detail." ] },
     forecast: { title: "Reading the forecast", tour: 2, body: [
-      "The line is the most likely number of guests arriving at this entrance in each hour.",
-      "The shaded band is the likely range: on about 8 days out of 10, the real number falls inside it. A wider band means less certainty." ] },
-    uncertainty: { title: "Why the forecast is unsure", tour: 3, body: [
-      "Blue is normal day-to-day ups and downs. Nobody can remove those, so the answer is a few extra staff.",
-      "Orange is uncertainty because the tool has seen little history for this situation. That's where your knowledge helps: tell it what you know." ] },
+      "The line shows the median forecast of arrivals per hour at the selected entrance.",
+      "The shaded band is the 80% range: on about 8 days out of 10, actual arrivals fall inside it. A wider band indicates greater uncertainty." ] },
+    uncertainty: { title: "Sources of uncertainty", tour: 3, body: [
+      "Blue shows day-to-day variation. It cannot be reduced, so it is covered by a small staffing buffer.",
+      "Orange shows uncertainty caused by limited historical data. Information you provide about the situation can reduce it." ] },
     plans: { title: "Choosing a staffing plan", tour: 4, body: [
-      "Each dot is one staffing plan. Further right means more staff and higher cost; lower means shorter queues.",
-      "The thin line above a dot shows the wait on a bad day (worse than 9 days out of 10). The tool marks a balanced plan, but the choice is yours." ] },
-    whatifs: { title: "What-ifs", tour: 5, body: [
-      "A what-if is a safe copy of the official plan. Add changes such as a closed entrance or a staff shortage and the plans are recalculated in seconds.",
-      "The official plan only changes when you make a what-if official." ] },
-    inbox: { title: "Notes from Claude", tour: 6, body: [
-      "When you tell Claude about roadworks, another event or a change of schedule, it writes down how it understood you.",
-      "Those notes wait here. Nothing changes until you confirm one; then it goes into a what-if." ] },
-    history: { title: "History", tour: 6, body: [
-      "Every proposal, confirmation, change and decision is recorded here: what happened, who did it and whether it was on the website or in Claude." ] },
-    claude: { title: "Using Claude", tour: 7, body: [
-      "Add this tool to Claude as a connector, then ask in plain words. Claude shows the same charts inside the chat." ] },
+      "Each point is a staffing plan. Plans further right use more staff and cost more; lower plans have shorter queues.",
+      "The line above each point shows the P90 wait, which is exceeded on 1 day in 10. The tool marks a balanced plan; the final choice is yours." ] },
+    whatifs: { title: "Scenarios", tour: 5, body: [
+      "A scenario is a copy of the official plan for testing changes, such as an entrance closure or a staff shortage. Plans are recalculated within seconds.",
+      "The official plan changes only when you adopt a scenario." ] },
+    inbox: { title: "Inbox", tour: 6, body: [
+      "When you mention roadworks, another event or a schedule change to Claude, it records a proposed change with its interpretation.",
+      "Proposed changes wait here. Each takes effect only after you confirm it, and is then added to a scenario." ] },
+    history: { title: "Activity log", tour: 6, body: [
+      "Every proposal, confirmation, change and decision is recorded with its author, time and channel (website or Claude)." ] },
+    claude: { title: "Claude integration", tour: 7, body: [
+      "Add Event Staffing Planner to Claude as a connector, then ask questions in plain language. Claude displays the same charts in the conversation." ] },
   };
   function explain(key) {
     const e = EXPLAIN[key] || EXPLAIN.home;
@@ -124,7 +124,7 @@
     const left = h("div", {}, row);
     h("h1", { class: "text-2xl font-bold sm:text-3xl" }, left, title);
     if (subtitle) h("p", { class: "mt-1 text-base-content/75" }, left, subtitle);
-    if (helpKey) btn(row, "What am I looking at?", "btn-sm btn-soft", () => explain(helpKey), "info");
+    if (helpKey) btn(row, "About this page", "btn-sm btn-soft", () => explain(helpKey), "info");
     return row;
   }
   function card(parent, cls) {
@@ -135,15 +135,15 @@
     const body = card(parent);
     const row = h("div", { class: "flex items-center gap-3" }, body);
     h("span", { class: "loading loading-dots loading-md" }, row);
-    h("span", {}, row, text || "Calculating… this takes a few seconds.");
+    h("span", {}, row, text || "Calculating. This takes a few seconds.");
   }
 
   /* ---------------- navigation ---------------- */
 
   const NAV = [
-    ["home", "Home", "home"], ["forecast", "Forecast", "chart"], ["plans", "Staffing plans", "plans"],
-    ["whatifs", "What-ifs", "whatif"], ["inbox", "Inbox", "inbox"], ["history", "History", "history"],
-    ["learn", "Learn", "learn"], ["claude", "Use in Claude", "claude"],
+    ["home", "Overview", "home"], ["forecast", "Forecast", "chart"], ["plans", "Staffing plans", "plans"],
+    ["whatifs", "Scenarios", "whatif"], ["inbox", "Inbox", "inbox"], ["history", "Activity log", "history"],
+    ["learn", "Guide", "learn"], ["claude", "Claude integration", "claude"],
   ];
   function renderNav(active) {
     const nav = $("nav");
@@ -218,7 +218,7 @@
     S.scenario = await api(`/api/scenarios/${S.scenarioId}`);
     const ssel = $("scenario-select");
     ssel.textContent = "";
-    for (const sc of active) h("option", { value: sc.id }, ssel, sc.kind === "official" ? "Official plan" : `What-if: ${sc.name.replace(/^What-if:\s*/, "")}`);
+    for (const sc of active) h("option", { value: sc.id }, ssel, sc.kind === "official" ? "Official plan" : `Scenario: ${sc.name.replace(/^What-if:\s*/, "")}`);
     ssel.value = S.scenarioId;
     synced();
     render(false);
@@ -268,23 +268,23 @@
       const c = h("div", { class: "card bg-primary text-primary-content" }, root);
       const b = h("div", { class: "card-body flex-col gap-3 sm:flex-row sm:items-center" }, c);
       const t = h("div", { class: "flex-1" }, b);
-      h("h2", { class: "card-title" }, t, "New here? Take the 2-minute tour");
-      h("p", { class: "mt-1" }, t, "Seven short steps show you how to read the charts and make a plan.");
+      h("h2", { class: "card-title" }, t, "Take the guided tour");
+      h("p", { class: "mt-1" }, t, "Seven short steps explain the charts and the planning workflow.");
       const a = h("div", { class: "card-actions" }, b);
-      link(a, "Start the tour", "#/tour/1", "btn");
-      btn(a, "Skip", "btn-ghost text-primary-content hover:bg-primary-content/10", () => { store.set("fm-tour-done", "1"); render(true); });
+      link(a, "Start tour", "#/tour/1", "btn");
+      btn(a, "Dismiss", "btn-ghost text-primary-content hover:bg-primary-content/10", () => { store.set("fm-tour-done", "1"); render(true); });
     }
 
     if (ev.pending.length) {
       const al = h("div", { role: "alert", class: "alert alert-info alert-soft alert-vertical sm:alert-horizontal" }, root);
       al.appendChild(icon("inbox"));
-      h("span", {}, al, `Claude wrote down ${ev.pending.length} note${ev.pending.length > 1 ? "s" : ""} for you to check.`);
+      h("span", {}, al, `${ev.pending.length} proposed change${ev.pending.length > 1 ? "s" : ""} from Claude await${ev.pending.length > 1 ? "" : "s"} your review.`);
       link(al, "Open inbox", "#/inbox", "btn btn-sm");
     }
     if (st.scenario.kind === "what_if") {
       const al = h("div", { role: "status", class: "alert alert-soft alert-vertical sm:alert-horizontal" }, root);
-      h("span", {}, al, `You are looking at a what-if: “${st.scenario.name}”. The official plan is unchanged.`);
-      btn(al, "Show the official plan", "btn-sm", () => setScenario(official().id));
+      h("span", {}, al, `You are viewing the scenario “${st.scenario.name}”. The official plan is unchanged.`);
+      btn(al, "View official plan", "btn-sm", () => setScenario(official().id));
     }
 
     if (!sel || !fc) { waiting(root); return; }
@@ -296,11 +296,11 @@
       h("div", { class: "stat-desc" }, s, desc);
     };
     const t = fc.totals.day;
-    stat("Guests expected", fmt(t.p50), `likely ${fmt(t.p10)} to ${fmt(t.p90)}`);
-    stat("Staff cost", eur(sel.staff_cost), `${sel.staff_hours} staff-hours in total`);
+    stat("Expected guests", fmt(t.p50), `80% range: ${fmt(t.p10)} to ${fmt(t.p90)}`);
+    stat("Staff cost", eur(sel.staff_cost), `${sel.staff_hours} staff-hours`);
     stat("Average wait", `${fmt1(sel.expected_wait)} min`, `under ${fmt1(sel.wait_p90)} min on 9 days in 10`);
 
-    h("h2", { class: "text-lg font-bold" }, root, "What would you like to do?");
+    h("h2", { class: "text-lg font-bold" }, root, "Next steps");
     const grid = h("div", { class: "grid gap-4 sm:grid-cols-3" }, root);
     const tile = (href, ic, title, text) => {
       const a = h("a", { href, class: "card bg-base-100 shadow-sm transition hover:shadow-md" }, grid);
@@ -310,21 +310,21 @@
       h("h3", { class: "card-title text-base" }, b, title);
       h("p", { class: "text-sm text-base-content/75" }, b, text);
     };
-    tile("#/forecast", "chart", "See the forecast", "Who arrives at each entrance, and how sure the tool is.");
-    tile("#/plans", "plans", "Compare staffing plans", "From cheapest to shortest queues. Pick your balance.");
-    tile("#/whatifs", "whatif", "Try a what-if", "Close an entrance or add a concert in town, safely.");
+    tile("#/forecast", "chart", "View the forecast", "Expected arrivals per entrance, with their uncertainty.");
+    tile("#/plans", "plans", "Compare staffing plans", "Trade staffing cost against guest waiting time.");
+    tile("#/whatifs", "whatif", "Test a scenario", "Model an entrance closure or a nearby event without changing the official plan.");
   }
 
   function gateSentence(series) {
     const peak = series.points.reduce((a, b) => (b.p50 > a.p50 ? b : a));
     const share = series.points.reduce((s, p) => s + p.share_missing_history, 0) / series.points.length;
-    const busiest = `Busiest hour: ${peak.hour}, with about ${fmt(peak.p50)} guests (likely ${fmt(peak.p10)} to ${fmt(peak.p90)}).`;
-    const why = share >= 0.35 ? "A lot of the uncertainty here comes from limited history." : "Most of the uncertainty here is ordinary day-to-day variation.";
-    return `${busiest} About ${fmt(series.day_total.p50)} guests over the whole day. ${why}`;
+    const busiest = `Peak hour: ${peak.hour}, with about ${fmt(peak.p50)} arrivals (80% range: ${fmt(peak.p10)} to ${fmt(peak.p90)}).`;
+    const why = share >= 0.35 ? "A large share of the uncertainty comes from limited history." : "Most of the uncertainty is day-to-day variation.";
+    return `${busiest} Expected total for the day: about ${fmt(series.day_total.p50)}. ${why}`;
   }
 
   function pageForecast(root) {
-    header(root, "Who arrives, and when?", "Guests expected at each entrance, hour by hour.", "forecast");
+    header(root, "Arrival forecast", "Expected arrivals per entrance and hour.", "forecast");
     const fc = S.scenario.forecast;
     if (!fc) { waiting(root); return; }
     if (!S.gate || (S.gate !== "all" && !fc.series.some((s) => s.gate_id === S.gate))) S.gate = fc.series[0].gate_id;
@@ -339,7 +339,7 @@
 
     const body = card(root);
     if (S.gate === "all") {
-      h("p", { class: "text-base-content/80" }, body, `About ${fmt(fc.totals.day.p50)} guests in total (likely ${fmt(fc.totals.day.p10)} to ${fmt(fc.totals.day.p90)}). Each panel uses the same scale, so you can compare entrances.`);
+      h("p", { class: "text-base-content/80" }, body, `Expected total: about ${fmt(fc.totals.day.p50)} guests (80% range: ${fmt(fc.totals.day.p10)} to ${fmt(fc.totals.day.p90)}). All panels share one scale for comparison.`);
       const box = h("div", {}, body);
       FC.renderForecast(box, fc, { title: false, table: false, notes: false, legend: true });
     } else {
@@ -348,34 +348,34 @@
       h("p", { class: "text-base-content/85" }, body, gateSentence(series));
       if (series.history && series.history.thin) {
         const al = h("div", { role: "alert", class: "alert alert-warning alert-soft" }, body);
-        h("span", {}, al, `Little history here: this entrance has only ${series.history.days} days of data. If you know something the data can't show (parking, shuttles, signs), tell Claude or add a note in a what-if.`);
+        h("span", {}, al, `Limited history: this entrance has only ${series.history.days} days of data. Information the data does not capture, such as parking, shuttles or signage, can be added through Claude or as a change in a scenario.`);
       }
       const chart = h("div", {}, body);
       const toggleRow = h("label", { class: "flex w-fit cursor-pointer items-center gap-3 text-sm" }, body);
       const tg = h("input", { type: "checkbox", class: "toggle toggle-sm toggle-secondary shrink-0" }, toggleRow);
       tg.checked = S.showWhy;
-      h("span", {}, toggleRow, "Show why it's uncertain, hour by hour");
+      h("span", {}, toggleRow, "Show sources of uncertainty by hour");
       tg.addEventListener("change", () => { S.showWhy = tg.checked; render(true); });
       FC.renderGate(chart, fc, S.gate, { strip: S.showWhy, legend: S.showWhy });
       if (S.showWhy) {
         const more = h("p", { class: "text-sm text-base-content/75" }, body);
-        more.appendChild(document.createTextNode("Orange means the tool has little history for that hour; blue is normal day-to-day variation. "));
-        const a = h("button", { type: "button", class: "link" }, more, "Tell me more");
+        more.appendChild(document.createTextNode("Orange indicates limited history for that hour; blue indicates day-to-day variation. "));
+        const a = h("button", { type: "button", class: "link" }, more, "Learn more");
         a.addEventListener("click", () => explain("uncertainty"));
       }
     }
 
     const det = h("details", { class: "collapse collapse-arrow bg-base-100 shadow-sm" }, root);
-    h("summary", { class: "collapse-title font-semibold" }, det, "What this forecast assumes");
+    h("summary", { class: "collapse-title font-semibold" }, det, "Forecast assumptions");
     const dc = h("div", { class: "collapse-content text-sm space-y-1" }, det);
     for (const a of fc.assumptions || []) h("p", {}, dc, a.text);
-    if (fc.backtest) h("p", { class: "text-base-content/70" }, dc, `Checked on past days: the likely ranges contained ${pct(fc.backtest.coverage_p10_p90)} of what really happened (aim: 80%).`);
+    if (fc.backtest) h("p", { class: "text-base-content/70" }, dc, `Backtest: on days held out from training, ${pct(fc.backtest.coverage_p10_p90)} of actual arrivals fell within the 80% range (target: 80%).`);
     const numbers = h("details", { class: "collapse collapse-arrow bg-base-100 shadow-sm" }, root);
-    h("summary", { class: "collapse-title font-semibold" }, numbers, "See the numbers");
+    h("summary", { class: "collapse-title font-semibold" }, numbers, "Data table");
     const nc = h("div", { class: "collapse-content overflow-x-auto" }, numbers);
     const table = h("table", { class: "table table-sm" }, nc);
     const hr = h("tr", {}, h("thead", {}, table));
-    for (const c of ["Entrance", "Hour", "Most likely", "Likely range", "Limited history share"]) h("th", {}, hr, c);
+    for (const c of ["Entrance", "Hour", "Median", "80% range", "Share from limited history"]) h("th", {}, hr, c);
     const tb = h("tbody", {}, table);
     for (const s of fc.series) {
       if (S.gate !== "all" && s.gate_id !== S.gate) continue;
@@ -387,72 +387,72 @@
   }
 
   function pagePlans(root) {
-    header(root, "How many staff, and at what cost?", "Each plan balances what staff cost against how long guests wait.", "plans");
+    header(root, "Staffing plans", "Each plan balances staffing cost against guest waiting time.", "plans");
     const st = S.scenario, result = st.result, sel = st.selected_solution, sc = st.scenario;
     if (!result || !sel) { waiting(root); return; }
     const editable = st.editable && !isRunning() && !st.result_is_stale;
 
     const top = card(root);
-    h("h2", { class: "card-title" }, top, sc.kind === "official" ? "The official plan" : `Your plan in “${sc.name}”`);
-    const labelText = { cheapest: "the cheapest plan", balanced: "the balanced plan", shortest_wait: "the plan with the shortest queues" }[sel.label] || "a plan you picked";
+    h("h2", { class: "card-title" }, top, sc.kind === "official" ? "Official plan" : `Selected plan in “${sc.name}”`);
+    const labelText = { cheapest: "the lowest-cost plan", balanced: "the balanced plan", shortest_wait: "the shortest-wait plan" }[sel.label] || "a plan you selected";
     h("p", { class: "text-base-content/85" }, top,
-      `This is ${labelText}: ${sel.staff_hours} staff-hours (${eur(sel.staff_cost)}). Guests wait about ${fmt1(sel.expected_wait)} minutes on average, and less than ${fmt1(sel.wait_p90)} minutes on 9 days out of 10. The busiest moment is around ${sel.peak_hour}.`);
+      `This is ${labelText}: ${sel.staff_hours} staff-hours (${eur(sel.staff_cost)}). The average wait is about ${fmt1(sel.expected_wait)} minutes per guest and stays below ${fmt1(sel.wait_p90)} minutes on 9 days out of 10. Demand peaks around ${sel.peak_hour}.`);
     if (st.comparison) {
       const c = st.comparison;
       const al = h("div", { role: "status", class: "alert alert-soft" }, top);
       const more = c.delta_staff_hours >= 0 ? `${c.delta_staff_hours} more` : `${-c.delta_staff_hours} fewer`;
       const wait = c.delta_expected_wait <= 0 ? `${fmt1(-c.delta_expected_wait)} minutes shorter` : `${fmt1(c.delta_expected_wait)} minutes longer`;
-      h("span", {}, al, `Compared with the official plan: ${more} staff-hours (${c.delta_staff_cost >= 0 ? "+" : "−"}${eur(Math.abs(c.delta_staff_cost))}), and waits are ${wait}.`);
+      h("span", {}, al, `Compared with the official plan: ${more} staff-hours (${c.delta_staff_cost >= 0 ? "+" : "−"}${eur(Math.abs(c.delta_staff_cost))}); average wait ${wait}.`);
     }
     if (result.service_cap_met === false) {
       const al = h("div", { role: "alert", class: "alert alert-warning alert-soft" }, top);
-      h("span", {}, al, `With these changes no plan keeps the average wait under ${result.max_expected_wait} minutes. These are the best possible plans.`);
+      h("span", {}, al, `Under these changes, no plan keeps the average wait below ${result.max_expected_wait} minutes. The plans shown are the best available.`);
     }
     const actions = h("div", { class: "card-actions" }, top);
     if (sc.kind === "what_if") {
-      const b = btn(actions, "Make this the official plan", "btn-primary", () => confirmBox(
-        "Make this the official plan?",
-        `“${sc.name}” with ${sel.staff_hours} staff-hours (${eur(sel.staff_cost)}, about ${fmt1(sel.expected_wait)} min wait) replaces the current official plan. The old one stays in History.`,
-        "Yes, make it official",
-        () => act(() => post(`/api/scenarios/${sc.id}/promote`, { solution_id: sel.id }), "This is now the official plan.")));
+      const b = btn(actions, "Adopt as official plan", "btn-primary", () => confirmBox(
+        "Adopt this plan?",
+        `“${sc.name}” (${sel.staff_hours} staff-hours, ${eur(sel.staff_cost)}, average wait about ${fmt1(sel.expected_wait)} min) will replace the current official plan. The previous plan remains in the activity log.`,
+        "Adopt plan",
+        () => act(() => post(`/api/scenarios/${sc.id}/promote`, { solution_id: sel.id }), "Official plan updated.")));
       b.disabled = !editable;
     } else {
-      h("p", { class: "text-sm text-base-content/70" }, actions, "To change the official plan, try your changes in a what-if first.");
-      link(actions, "Go to what-ifs", "#/whatifs", "btn btn-sm");
+      h("p", { class: "text-sm text-base-content/70" }, actions, "To change the official plan, test the changes in a scenario first.");
+      link(actions, "Open scenarios", "#/whatifs", "btn btn-sm");
     }
 
     const chartCard = card(root);
-    h("h2", { class: "card-title" }, chartCard, "All the plans the tool found");
+    h("h2", { class: "card-title" }, chartCard, "All candidate plans");
     h("p", { class: "text-sm text-base-content/75" }, chartCard, editable
-      ? "Each dot is a plan. Further right costs more; lower means shorter queues. Click a dot to choose it."
-      : "Each dot is a plan. Further right costs more; lower means shorter queues.");
+      ? "Each point is a plan. Plans further right cost more; lower plans have shorter queues. Select a point to choose that plan."
+      : "Each point is a plan. Plans further right cost more; lower plans have shorter queues.");
     const chartBox = h("div", {}, chartCard);
     FC.renderTradeoff(chartBox, result, {
       title: false,
       selectedId: sc.selected_solution_id,
       official: st.comparison ? st.comparison.official : null,
       editable,
-      onSelect: (id) => act(() => post(`/api/scenarios/${sc.id}/select`, { solution_id: id }), "Plan chosen."),
+      onSelect: (id) => act(() => post(`/api/scenarios/${sc.id}/select`, { solution_id: id }), "Plan selected."),
     });
 
     const det = h("details", { class: "collapse collapse-arrow bg-base-100 shadow-sm" }, root);
-    h("summary", { class: "collapse-title font-semibold" }, det, "See the staffing schedule");
+    h("summary", { class: "collapse-title font-semibold" }, det, "Staffing schedule");
     const dc = h("div", { class: "collapse-content" }, det);
-    h("p", { class: "text-sm text-base-content/75 mb-2" }, dc, "How many lanes are open at each entrance, hour by hour. Darker means more of that entrance's lanes are open; grey means closed.");
+    h("p", { class: "text-sm text-base-content/75 mb-2" }, dc, "Open lanes per entrance and hour. Darker cells indicate a higher share of the entrance's lanes in use; grey indicates a closed entrance.");
     const sched = h("div", {}, dc);
     FC.renderSchedule(sched, sel, result, S.event.gates, { title: false });
   }
 
   const TYPES = {
-    gate_closed: { label: "An entrance is closed", hint: "Roadworks, maintenance, security", fields: ["gate_id", "start", "end"] },
-    gate_capacity_limit: { label: "Fewer lanes at an entrance", hint: "Broken scanners, a narrowed path", fields: ["gate_id", "max_lanes", "start", "end"] },
-    staff_limit: { label: "Not enough staff", hint: "A cap on how many can work at once", fields: ["max_staff", "start", "end"] },
-    competing_event: { label: "Something else is on nearby", hint: "A concert or match drawing people away", fields: ["name", "impact", "start", "end"] },
-    schedule_shift: { label: "The show moves", hint: "A new start time for the evening show", fields: ["show_start"] },
-    note_only: { label: "Just a note", hint: "Remember something without changing the plan", fields: ["summary"] },
+    gate_closed: { label: "Entrance closure", hint: "Roadworks, maintenance, security", fields: ["gate_id", "start", "end"] },
+    gate_capacity_limit: { label: "Reduced lane capacity", hint: "Scanner failure, narrowed access", fields: ["gate_id", "max_lanes", "start", "end"] },
+    staff_limit: { label: "Staff limit", hint: "Maximum number of staff on duty at once", fields: ["max_staff", "start", "end"] },
+    competing_event: { label: "Competing event", hint: "A concert or match nearby", fields: ["name", "impact", "start", "end"] },
+    schedule_shift: { label: "Show time change", hint: "A new start time for the evening show", fields: ["show_start"] },
+    note_only: { label: "Note only", hint: "Record information without changing the plan", fields: ["summary"] },
   };
-  const FIELD_LABELS = { gate_id: "Which entrance?", start: "From", end: "Until", max_lanes: "Lanes that can open", max_staff: "Most staff working at once",
-                         name: "What is it called?", impact: "How big?", show_start: "New start time", summary: "Your note" };
+  const FIELD_LABELS = { gate_id: "Entrance", start: "From", end: "Until", max_lanes: "Maximum open lanes", max_staff: "Maximum staff on duty",
+                         name: "Event name", impact: "Expected impact", show_start: "New start time", summary: "Note" };
 
   function openChangeWizard(scenarioId) {
     const box = $("change-box");
@@ -460,8 +460,8 @@
     const hours = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => `${String(from + i).padStart(2, "0")}:00`);
     function stepOne() {
       box.textContent = "";
-      h("h3", { class: "text-lg font-bold" }, box, "What changed?");
-      h("p", { class: "text-sm text-base-content/75 mb-3" }, box, "Pick the closest match. You can add a note in your own words next.");
+      h("h3", { class: "text-lg font-bold" }, box, "Add a change");
+      h("p", { class: "text-sm text-base-content/75 mb-3" }, box, "Select the closest type. You can add a note in the next step.");
       const grid = h("div", { class: "grid gap-2 sm:grid-cols-2" }, box);
       for (const [key, t] of Object.entries(TYPES)) {
         const b = h("button", { type: "button", class: "btn h-auto flex-col items-start gap-0 py-3 text-left" }, grid);
@@ -484,26 +484,26 @@
         else if (f === "start") { input = h("select", { class: "select w-full bg-base-200" }, fs); for (const o of hours(ev.open_hour, ev.close_hour - 1)) h("option", { value: o }, input, o); input.value = "17:00"; }
         else if (f === "end") { input = h("select", { class: "select w-full bg-base-200" }, fs); for (const o of hours(ev.open_hour + 1, ev.close_hour)) h("option", { value: o }, input, o); input.value = "20:00"; }
         else if (f === "show_start") { input = h("select", { class: "select w-full bg-base-200" }, fs); for (const o of hours(ev.open_hour, ev.close_hour - 1)) h("option", { value: o }, input, o); input.value = "20:00"; }
-        else if (f === "impact") { input = h("select", { class: "select w-full bg-base-200" }, fs); h("option", { value: "minor" }, input, "Small (a few hundred people)"); h("option", { value: "major" }, input, "Big (thousands of people)"); }
+        else if (f === "impact") { input = h("select", { class: "select w-full bg-base-200" }, fs); h("option", { value: "minor" }, input, "Minor (a few hundred people)"); h("option", { value: "major" }, input, "Major (thousands of people)"); }
         else if (f === "max_lanes" || f === "max_staff") { input = h("input", { type: "number", min: 1, class: "input w-full bg-base-200", value: f === "max_lanes" ? 2 : 12 }, fs); }
         else input = h("input", { type: "text", class: "input w-full bg-base-200", maxlength: 200 }, fs);
         inputs[f] = input;
       }
       const fs = h("fieldset", { class: "fieldset" }, box);
-      h("legend", { class: "fieldset-legend" }, fs, "In your own words (optional)");
+      h("legend", { class: "fieldset-legend" }, fs, "Note (optional)");
       const note = h("textarea", { class: "textarea w-full bg-base-200", rows: 2, maxlength: 2000, placeholder: "e.g. Roadworks on the north road from 5 pm" }, fs);
-      h("p", { class: "label" }, fs, "Kept word for word with the change, so others can see why it was made.");
+      h("p", { class: "label" }, fs, "Stored with the change as its rationale.");
       const err = h("div", {}, box);
       const actions = h("div", { class: "modal-action" }, box);
       btn(actions, "Back", "btn-ghost", stepOne);
-      const add = btn(actions, "Add this change", "btn-primary", async () => {
+      const add = btn(actions, "Add change", "btn-primary", async () => {
         const constraint = { type };
         for (const [k, el] of Object.entries(inputs)) constraint[k] = el.type === "number" ? Number(el.value) : el.value;
         add.disabled = true;
         try {
           await post(`/api/scenarios/${scenarioId}/constraints`, { constraint, note_text: note.value });
           $("change").close();
-          toast("Change added. The plans are being recalculated.");
+          toast("Change added. Plans are being recalculated.");
           await reload();
         } catch (e) {
           add.disabled = false;
@@ -518,61 +518,61 @@
   }
 
   function pageWhatIfs(root) {
-    header(root, "What if…?", "Try changes safely. The official plan only changes when you make a what-if official.", "whatifs");
+    header(root, "Scenarios", "Test changes without affecting the official plan. The official plan changes only when you adopt a scenario.", "whatifs");
     const ev = S.event, st = S.scenario;
 
     const create = card(root);
-    h("h2", { class: "card-title" }, create, "Start a new what-if");
-    h("p", { class: "text-sm text-base-content/75" }, create, "It starts as a copy of the official plan.");
+    h("h2", { class: "card-title" }, create, "New scenario");
+    h("p", { class: "text-sm text-base-content/75" }, create, "A new scenario starts as a copy of the official plan.");
     const row = h("div", { class: "join w-full max-w-lg" }, create);
-    const name = h("input", { type: "text", class: "input join-item w-full bg-base-200", placeholder: "e.g. Roadworks on the north road", maxlength: 200, "aria-label": "Name of the what-if" }, row);
+    const name = h("input", { type: "text", class: "input join-item w-full bg-base-200", placeholder: "e.g. Roadworks on the north road", maxlength: 200, "aria-label": "Scenario name" }, row);
     btn(row, "Create", "join-item", () => act(async () => {
-      const r = await post("/api/scenarios", { event_id: S.eventId, name: name.value.trim() || "My what-if" });
+      const r = await post("/api/scenarios", { event_id: S.eventId, name: name.value.trim() || "New scenario" });
       S.scenarioId = r.id; store.set(`fm-scenario-${S.eventId}`, r.id);
-    }, "What-if created. Now add a change."), "plus");
+    }, "Scenario created. Add a change to continue."), "plus");
 
     if (st.scenario.kind === "what_if") {
       const body = card(root, "border-2 border-secondary");
       const head = h("div", { class: "flex flex-wrap items-center justify-between gap-2" }, body);
       h("h2", { class: "card-title" }, head, `Changes in “${st.scenario.name}”`);
       const hb = h("div", { class: "flex gap-2" }, head);
-      const undo = btn(hb, "Undo last change", "btn-sm btn-ghost", () => act(() => post(`/api/scenarios/${st.scenario.id}/undo`), "Undone."));
+      const undo = btn(hb, "Undo last change", "btn-sm btn-ghost", () => act(() => post(`/api/scenarios/${st.scenario.id}/undo`), "Change undone."));
       undo.disabled = !st.can_undo;
-      btn(hb, "Add a change", "btn-sm btn-secondary", () => openChangeWizard(st.scenario.id), "plus");
-      if (!st.constraints.length) h("p", { class: "text-base-content/70" }, body, "No changes yet. Add one to see how the plans respond.");
+      btn(hb, "Add change", "btn-sm btn-secondary", () => openChangeWizard(st.scenario.id), "plus");
+      if (!st.constraints.length) h("p", { class: "text-base-content/70" }, body, "No changes yet. Add a change to recalculate the plans.");
       const list = h("ul", { class: "list" }, body);
       for (const c of st.constraints) {
         const li = h("li", { class: "list-row items-center" }, list);
         const txt = h("div", { class: "list-col-grow" }, li);
         h("div", { class: "font-semibold" }, txt, c.readback);
         if (c.note) h("div", { class: "text-sm italic text-base-content/70" }, txt, `“${c.note.text}”`);
-        h("div", { class: "text-xs text-base-content/70" }, txt, c.proposed_via === "chat" ? "From Claude, confirmed by you" : "Added on the website");
+        h("div", { class: "text-xs text-base-content/70" }, txt, c.proposed_via === "chat" ? "Proposed in Claude, confirmed by you" : "Added on the website");
         btn(li, "Remove", "btn-sm btn-ghost", () => act(() => api(`/api/constraints/${c.id}`, { method: "DELETE" }), "Removed. Recalculating."));
       }
       const foot = h("div", { class: "card-actions" }, body);
-      link(foot, "See the plans for this what-if", "#/plans", "btn btn-sm");
+      link(foot, "View plans for this scenario", "#/plans", "btn btn-sm");
     }
 
-    h("h2", { class: "text-lg font-bold" }, root, "Your plans and what-ifs");
+    h("h2", { class: "text-lg font-bold" }, root, "Plans and scenarios");
     const grid = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
     for (const sc of ev.scenarios.filter((s) => s.status === "active")) {
       const c = h("div", { class: `card bg-base-100 shadow-sm ${sc.id === S.scenarioId ? "ring-2 ring-secondary" : ""}`.trim() }, grid);
       const b = h("div", { class: "card-body gap-2" }, c);
       const t = h("div", { class: "flex items-center gap-2" }, b);
       h("h3", { class: "card-title text-base" }, t, sc.kind === "official" ? "Official plan" : sc.name);
-      h("span", { class: `badge badge-sm ${sc.kind === "official" ? "badge-primary" : "badge-secondary"}` }, t, sc.kind === "official" ? "Official" : "What-if");
-      h("p", { class: "text-xs text-base-content/70" }, b, sc.created_via === "system" ? "Created automatically" : `Started ${sc.created_via === "dashboard" ? "on the website" : "in Claude"}`);
+      h("span", { class: `badge badge-sm ${sc.kind === "official" ? "badge-primary" : "badge-secondary"}` }, t, sc.kind === "official" ? "Official" : "Scenario");
+      h("p", { class: "text-xs text-base-content/70" }, b, sc.created_via === "system" ? "Created automatically" : `Created ${sc.created_via === "dashboard" ? "on the website" : "in Claude"}`);
       const a = h("div", { class: "card-actions justify-end" }, b);
-      if (sc.id !== S.scenarioId) btn(a, "Look at it", "btn-sm", () => setScenario(sc.id));
-      else h("span", { class: "badge badge-ghost" }, a, "You are looking at this");
+      if (sc.id !== S.scenarioId) btn(a, "View", "btn-sm", () => setScenario(sc.id));
+      else h("span", { class: "badge badge-ghost" }, a, "Currently viewing");
       if (sc.kind === "what_if") btn(a, "Discard", "btn-sm btn-ghost", () => confirmBox(
-        "Discard this what-if?", `“${sc.name}” will be removed from the list. It stays in History.`, "Discard",
-        () => act(async () => { await post(`/api/scenarios/${sc.id}/discard`); if (S.scenarioId === sc.id) S.scenarioId = null; }, "Discarded.")));
+        "Discard this scenario?", `“${sc.name}” will be removed from the list. Its record remains in the activity log.`, "Discard",
+        () => act(async () => { await post(`/api/scenarios/${sc.id}/discard`); if (S.scenarioId === sc.id) S.scenarioId = null; }, "Scenario discarded.")));
     }
   }
 
   function pageInbox(root) {
-    header(root, "Inbox", "Notes Claude wrote down for you. Check how each was understood, then confirm or reject it.", "inbox");
+    header(root, "Inbox", "Changes proposed in Claude. Review each interpretation, then confirm or reject it.", "inbox");
     const pending = S.event.pending;
     if (!pending.length) {
       const b = card(root);
@@ -580,62 +580,62 @@
       const ic = h("div", { class: "flex size-12 shrink-0 items-center justify-center rounded-full bg-success/15" }, row);
       ic.appendChild(icon("check", "size-6"));
       const t = h("div", {}, row);
-      h("h2", { class: "font-bold" }, t, "Nothing waiting");
-      h("p", { class: "text-sm text-base-content/75" }, t, "When you tell Claude about roadworks, another event or a schedule change, the note appears here first.");
+      h("h2", { class: "font-bold" }, t, "No pending changes");
+      h("p", { class: "text-sm text-base-content/75" }, t, "Changes you describe to Claude, such as roadworks or a schedule change, appear here for review.");
       return;
     }
     for (const c of pending) {
       const b = card(root);
       if (c.note) {
-        h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "You said");
+        h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Original note");
         h("blockquote", { class: "border-l-4 border-secondary pl-3 italic" }, b, `“${c.note.text}”`);
       }
-      h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Understood as");
+      h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Interpretation");
       h("p", { class: "font-semibold" }, b, c.readback);
       if (c.interpretation && c.interpretation !== c.readback) h("p", { class: "text-sm text-base-content/75" }, b, c.interpretation);
       if (c.assumptions.length) {
         const d = h("details", { class: "collapse collapse-arrow bg-base-200" }, b);
-        h("summary", { class: "collapse-title text-sm font-semibold" }, d, `What Claude had to guess (${c.assumptions.length})`);
+        h("summary", { class: "collapse-title text-sm font-semibold" }, d, `Assumptions (${c.assumptions.length})`);
         const ul = h("ul", { class: "collapse-content list-disc pl-8 text-sm" }, d);
         for (const a of c.assumptions) h("li", {}, ul, a);
       }
       const a = h("div", { class: "card-actions items-center justify-end" }, b);
-      const reason = h("input", { type: "text", class: "input input-sm w-full max-w-xs bg-base-200", placeholder: "Why reject? (optional)", maxlength: 1000, "aria-label": "Reason for rejecting" }, a);
-      btn(a, "Reject", "btn-sm btn-ghost", () => act(() => post(`/api/constraints/${c.id}/reject`, { reason: reason.value }), "Rejected."));
+      const reason = h("input", { type: "text", class: "input input-sm w-full max-w-xs bg-base-200", placeholder: "Reason (optional)", maxlength: 1000, "aria-label": "Reason for rejecting" }, a);
+      btn(a, "Reject", "btn-sm btn-ghost", () => act(() => post(`/api/constraints/${c.id}/reject`, { reason: reason.value }), "Change rejected."));
       btn(a, "Confirm", "btn-sm btn-success", () => act(async () => {
         const r = await post(`/api/constraints/${c.id}/confirm`);
         S.scenarioId = r.scenario_id; store.set(`fm-scenario-${S.eventId}`, r.scenario_id);
-      }, "Confirmed. It's now in a what-if, and the plans are being recalculated."), "check");
+      }, "Change confirmed and added to a scenario. Plans are being recalculated."), "check");
     }
   }
 
-  const TYPE_WORDS = { gate_closed: "a closed entrance", gate_capacity_limit: "fewer lanes", staff_limit: "a staff limit",
-                       competing_event: "an event nearby", schedule_shift: "a moved show", note_only: "a note" };
+  const TYPE_WORDS = { gate_closed: "an entrance closure", gate_capacity_limit: "reduced lane capacity", staff_limit: "a staff limit",
+                       competing_event: "a competing event", schedule_shift: "a show time change", note_only: "a note" };
   function historySentence(r) {
     const d = r.details || {};
     switch (r.action) {
-      case "propose_constraint": return `Claude wrote down a note about ${TYPE_WORDS[d.type] || "a change"}`;
-      case "confirm_constraint": return "Confirmed a note from Claude";
-      case "reject_constraint": return `Rejected a note from Claude${d.reason ? `: “${d.reason}”` : ""}`;
-      case "create_what_if": return `Started the what-if “${d.name || ""}”`;
+      case "propose_constraint": return `Claude proposed ${TYPE_WORDS[d.type] || "a change"}`;
+      case "confirm_constraint": return "Confirmed a change proposed in Claude";
+      case "reject_constraint": return `Rejected a change proposed in Claude${d.reason ? `: “${d.reason}”` : ""}`;
+      case "create_what_if": return `Created the scenario “${d.name || ""}”`;
       case "add_constraint": return `Added a change: ${TYPE_WORDS[d.type] || "a change"}`;
       case "remove_constraint": return "Removed a change";
-      case "select_plan": return `Picked plan ${d.solution_id}`;
+      case "select_plan": return `Selected plan ${d.solution_id}`;
       case "undo": return "Undid the last change";
-      case "discard_scenario": return "Discarded a what-if";
-      case "promote_scenario": return `Made a what-if the official plan (${d.staff_hours} staff-hours, ${eur(d.staff_cost || 0)})`;
+      case "discard_scenario": return "Discarded a scenario";
+      case "promote_scenario": return `Adopted a scenario as the official plan (${d.staff_hours} staff-hours, ${eur(d.staff_cost || 0)})`;
       default: return r.action.replaceAll("_", " ");
     }
   }
-  const WHERE = { dashboard: "on the website", chat: "via Claude", chat_panel: "in the Claude chat", system: "automatically" };
+  const WHERE = { dashboard: "on the website", chat: "in Claude", chat_panel: "in the Claude panel", system: "automatically" };
 
   function pageHistory(root) {
-    header(root, "History", "Every change: what happened, who did it, and where.", "history");
+    header(root, "Activity log", "All changes, with author, time and channel.", "history");
     const box = h("div", {}, root);
-    waiting(box, "Loading the history…");
+    waiting(box, "Loading the activity log…");
     api(`/api/events/${S.eventId}/audit`).then((rows) => {
       box.textContent = "";
-      if (!rows.length) { const b = card(box); h("p", {}, b, "Nothing has changed yet."); return; }
+      if (!rows.length) { const b = card(box); h("p", {}, b, "No activity yet."); return; }
       const ul = h("ul", { class: "list rounded-box bg-base-100 shadow-sm" }, box);
       for (const r of rows.slice(0, 60)) {
         const li = h("li", { class: "list-row items-center" }, ul);
@@ -652,27 +652,27 @@
   /* ---------------- learn & tour ---------------- */
 
   const TOUR = [
-    { title: "Your park", text: [
-      "This is Parkland Theme Park, a made-up park for trying the tool. Guests come in through three entrances, and each can open several lanes.",
-      "Today's event is the one in the menu at the top. You can switch events there." ], visual: tourPark },
+    { title: "The demo venue", text: [
+      "Parkland Theme Park is a fictional venue for demonstrating the tool. Guests enter through three entrances, each with several lanes.",
+      "The event selector at the top of the page switches between events." ], visual: tourPark },
     { title: "Reading a forecast", text: [
-      "The line shows the most likely number of guests arriving each hour at one entrance.",
-      "The shaded band is the likely range: on about 8 days out of 10, the real number lands inside it." ], visual: (b) => tourGate(b, false) },
-    { title: "Why the forecast is unsure", text: [
-      "There are two different reasons, shown in two colors below the chart.",
-      "Blue is ordinary day-to-day variation. Nobody can remove it, so plan a few extra staff. Orange means the tool has little history, here because this entrance is brand new. What you know can fill that gap." ], visual: (b) => tourGate(b, true) },
+      "The line shows the median number of guests arriving each hour at one entrance.",
+      "The shaded band is the 80% range: on about 8 days out of 10, actual arrivals fall inside it." ], visual: (b) => tourGate(b, false) },
+    { title: "Sources of uncertainty", text: [
+      "The forecast separates two sources of uncertainty, shown in two colors below the chart.",
+      "Blue is day-to-day variation, which cannot be removed and is covered by a small staffing buffer. Orange is limited history; here it arises because the entrance is new. Local knowledge can reduce it." ], visual: (b) => tourGate(b, true) },
     { title: "Choosing a staffing plan", text: [
-      "The tool tries thousands of staffing schedules and keeps the best ones. Each dot is one plan.",
-      "Further right costs more; lower means shorter queues. It marks a balanced plan, but you choose." ], visual: tourPlans },
-    { title: "Trying a what-if", text: [
-      "Suppose roadworks close the North Gate road from 5 to 8 pm. Start a what-if, add that change, and the plans are recalculated in seconds.",
-      "The official plan stays untouched while you explore." ], visual: tourWhatIf },
-    { title: "Making it official", text: [
-      "When a what-if looks right, open its plans and make it official. Notes from Claude always wait in your Inbox until you confirm them.",
-      "Every step is kept in History, so you can see who changed what, and why." ], visual: tourOfficial },
-    { title: "Use it in Claude", text: [
-      "You can do all of this by chatting. Add the tool to Claude as a connector, then ask in your own words.",
-      "Claude shows the same charts in the chat, and anything you confirm there shows up here too." ], visual: tourClaude },
+      "The optimizer evaluates thousands of staffing schedules and keeps the best trade-offs. Each point is one plan.",
+      "Plans further right cost more; lower plans have shorter queues. The tool marks a balanced plan, and you make the final choice." ], visual: tourPlans },
+    { title: "Testing a scenario", text: [
+      "For example, roadworks close the North Gate road from 5 to 8 pm. Create a scenario, add that change, and the plans are recalculated within seconds.",
+      "The official plan stays unchanged during testing." ], visual: tourWhatIf },
+    { title: "Adopting a plan", text: [
+      "When a scenario is ready, open its plans and adopt it as the official plan. Changes proposed in Claude remain in the Inbox until you confirm them.",
+      "Every step is recorded in the activity log, including who made each change and why." ], visual: tourOfficial },
+    { title: "Claude integration", text: [
+      "The same functions are available in Claude. Add the tool as a connector, then ask in plain language.",
+      "Claude displays the same charts in the conversation, and changes confirmed there appear here as well." ], visual: tourClaude },
   ];
 
   function tourPark(b) {
@@ -712,10 +712,10 @@
     }
   }
   function tourWhatIf(b) {
-    flow(b, [["Start a what-if", "A safe copy of the official plan."], ["Add the change", "“North Gate closed 17:00–20:00”."], ["See new plans", "Recalculated in a few seconds."]]);
+    flow(b, [["Create a scenario", "A copy of the official plan."], ["Add the change", "“North Gate closed 17:00–20:00”."], ["Review the new plans", "Recalculated within seconds."]]);
   }
   function tourOfficial(b) {
-    flow(b, [["Check the plans", "Pick the balance you like."], ["Make it official", "You confirm once more."], ["It's in History", "Who, when, and from which note."]]);
+    flow(b, [["Review the plans", "Select the trade-off that fits."], ["Adopt the plan", "A second confirmation is required."], ["Activity log", "Records the author, time and source note."]]);
   }
   function tourClaude(b) {
     claudeBox(b);
@@ -723,19 +723,19 @@
   function claudeBox(parent) {
     const b = h("div", { class: "space-y-4" }, parent);
     const ol = h("ol", { class: "list-decimal space-y-3 pl-5" }, b);
-    h("li", {}, ol, "In Claude, open Settings, then Connectors, and add a custom connector.");
+    h("li", {}, ol, "In Claude, open Settings > Connectors and add a custom connector.");
     const li = h("li", {}, ol);
-    li.appendChild(document.createTextNode("Paste this address:"));
+    li.appendChild(document.createTextNode("Enter this address:"));
     const row = h("div", { class: "join mt-2 w-full max-w-lg" }, li);
     const input = h("input", { class: "input join-item w-full font-mono text-sm", readonly: "", "aria-label": "Connector address", value: S.me.mcp_url }, row);
     const copy = btn(row, "Copy", "join-item", async () => {
       try { await navigator.clipboard.writeText(S.me.mcp_url); copy.textContent = "Copied"; } catch (e) { input.select(); }
       setTimeout(() => { copy.textContent = "Copy"; }, 1500);
     });
-    const last = h("li", {}, ol, "Sign in when Claude asks, then try one of these:");
+    const last = h("li", {}, ol, "Sign in when prompted, then try a request such as:");
     const ex = h("div", { class: "mt-2 flex flex-wrap gap-2" }, last);
     for (const q of ["Show me the forecast for Halloween Night", "Roadworks close the north road from 5 to 8 pm", "What does the balanced plan cost?"]) h("span", { class: "badge badge-soft badge-secondary h-auto py-1" }, ex, q);
-    h("p", { class: "text-sm text-base-content/70" }, b, "Custom connectors need a paid Claude plan.");
+    h("p", { class: "text-sm text-base-content/70" }, b, "Custom connectors require a paid Claude plan.");
   }
 
   function pageTour(root, arg) {
@@ -756,15 +756,15 @@
     if (n > 1) link(nav, "Back", `#/tour/${n - 1}`, "btn btn-ghost"); else h("span", {}, nav);
     const right = h("div", { class: "flex gap-2" }, nav);
     if (n < TOUR.length) {
-      btn(right, "Skip the tour", "btn-ghost", () => { store.set("fm-tour-done", "1"); location.hash = "#/home"; });
+      btn(right, "Skip tour", "btn-ghost", () => { store.set("fm-tour-done", "1"); location.hash = "#/home"; });
       link(right, "Next", `#/tour/${n + 1}`, "btn btn-primary");
     } else {
-      btn(right, "Go to my overview", "btn-primary", () => { store.set("fm-tour-done", "1"); location.hash = "#/home"; });
+      btn(right, "Finish", "btn-primary", () => { store.set("fm-tour-done", "1"); location.hash = "#/home"; });
     }
   }
 
   function pageLearn(root) {
-    header(root, "Learn", "Short explanations, one idea at a time. Read them in order or jump to any.");
+    header(root, "Guide", "Short explanations of each part of the tool. Read them in order or individually.");
     const grid = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
     TOUR.forEach((t, i) => {
       const a = h("a", { href: `#/tour/${i + 1}`, class: "card bg-base-100 shadow-sm transition hover:shadow-md" }, grid);
@@ -775,8 +775,8 @@
       h("p", { class: "mt-1 text-sm text-base-content/70" }, t_, t.text[0]);
     });
     const more = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
-    for (const [href, title, text] of [["#/about", "About this prototype", "What is real here, what is made up, and what this research tests."],
-                                        ["/privacy", "Privacy", "What is stored about you, and how to delete it."]]) {
+    for (const [href, title, text] of [["#/about", "About this prototype", "Data sources, methods and the research question."],
+                                        ["/privacy", "Privacy", "Data stored about you and how to delete it."]]) {
       const a = h("a", { href, class: "card card-border bg-base-100" }, more);
       const b = h("div", { class: "card-body" }, a);
       h("h2", { class: "font-bold" }, b, title);
@@ -785,26 +785,26 @@
   }
 
   function pageClaude(root) {
-    header(root, "Use it in Claude", "Ask in your own words. Claude shows the same charts in the chat.", "claude");
+    header(root, "Claude integration", "Ask questions in plain language. Claude displays the same charts in the conversation.", "claude");
     const b = card(root);
     claudeBox(b);
     const how = card(root);
-    h("h2", { class: "card-title" }, how, "What happens to what you tell Claude");
-    flow(how, [["You mention something", "For example: “a big concert in town from 7 pm”."], ["Claude writes it down", "With how it understood you, and anything it had to guess."],
-               ["You confirm it", "In the chat or in your Inbox here. Until then, nothing changes."], ["Plans update", "In a what-if, so the official plan stays safe."]]);
+    h("h2", { class: "card-title" }, how, "How proposed changes are handled");
+    flow(how, [["You describe a change", "For example: “a large concert in town from 7 pm”."], ["Claude proposes a constraint", "With its interpretation and any assumptions."],
+               ["You confirm it", "In the conversation or in the Inbox. Nothing changes before confirmation."], ["Plans are recalculated", "In a scenario; the official plan is not affected."]]);
   }
 
   function pageAbout(root) {
-    header(root, "About this prototype", "What is real here, and what isn't.");
+    header(root, "About this prototype", "Data, methods and research question.");
     const fc = S.scenario.forecast;
     const grid = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
     const days = fc ? Math.max(...fc.series.map((s) => s.history.days)) : 120;
-    const cov = fc && fc.backtest ? `${pct(fc.backtest.coverage_p10_p90)} of what really happened (the aim is 80%)` : "close to the aim of 80%";
+    const cov = fc && fc.backtest ? `${pct(fc.backtest.coverage_p10_p90)} of actual arrivals fell within the 80% range (target: 80%)` : "the 80% range is checked against actual arrivals";
     for (const [title, text, cls] of [
-      ["The park is made up", `Parkland Theme Park, its entrances and ${days} days of visitor history are invented. They are built to behave like real arrivals: busy mornings, an evening rush before the show, quieter rainy days, and one brand-new entrance.`, "bg-secondary/12"],
-      ["The numbers are calculated", "Nothing on screen is faked or typed in. Every forecast and every staffing plan is worked out live from that history by a forecasting model and an optimization algorithm.", "bg-primary/12"],
-      ["The forecast is checked", `On past days it had not seen, the forecast's likely ranges contained ${cov}. So its sense of its own uncertainty is about right.`, "bg-accent/18"],
-      ["The methods are simple stand-ins", "The forecasting model and the optimization algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.", "bg-info/12"],
+      ["Synthetic data", `Parkland Theme Park, its entrances and ${days} days of visitor history are fictional. The data reproduces realistic arrival patterns: morning peaks, an evening rush before the show, lower attendance on rainy days and one newly opened entrance.`, "bg-secondary/12"],
+      ["Computed results", "No figures are entered by hand. All forecasts and staffing plans are computed from this history by a forecasting model and an optimization algorithm.", "bg-primary/12"],
+      ["Validated forecast", `On days held out from training, ${cov}.`, "bg-accent/18"],
+      ["Simplified methods", "The forecasting model and the optimization algorithm are intentionally simple, designed to test the research questions. A production deployment would use the venue's own data and stronger models.", "bg-info/12"],
     ]) {
       const c = h("div", { class: `card ${cls}` }, grid);
       const b = h("div", { class: "card-body" }, c);
@@ -812,9 +812,9 @@
       h("p", { class: "text-sm" }, b, text);
     }
     const t = card(root);
-    h("h2", { class: "card-title" }, t, "What this research tests");
-    h("p", {}, t, "Whether showing why a forecast is unsure, and turning a planner's knowledge into rules the staffing planner follows, helps people make better staffing decisions with less effort.");
-    h("p", { class: "text-sm text-base-content/70" }, t, "Your workspace is private to you. You can start over with a fresh demo from the account menu at any time.");
+    h("h2", { class: "card-title" }, t, "Research question");
+    h("p", {}, t, "Whether explaining the sources of forecast uncertainty, and converting planners' knowledge into constraints for the optimizer, helps people make better staffing decisions with less effort.");
+    h("p", { class: "text-sm text-base-content/70" }, t, "Your workspace is private. You can reset it from the account menu at any time.");
   }
 
   /* ---------------- account actions ---------------- */
@@ -824,10 +824,10 @@
     explain({ forecast: "forecast", plans: "plans", whatifs: "whatifs", inbox: "inbox", history: "history", claude: "claude" }[name] || "home");
   });
   $("reset-btn").addEventListener("click", () => confirmBox(
-    "Start over with a fresh demo?",
-    "This deletes everything in your workspace (what-ifs, notes, history) and loads a fresh copy of the demo park.",
-    "Start over",
-    () => act(async () => { await post("/api/workspace/reset-demo"); S.scenarioId = null; await loadEvents(); }, "Fresh demo loaded. The first plans take a few seconds.")));
+    "Reset workspace?",
+    "This deletes all workspace data, including scenarios, notes and the activity log, and restores the demo park.",
+    "Reset",
+    () => act(async () => { await post("/api/workspace/reset-demo"); S.scenarioId = null; await loadEvents(); }, "Workspace reset. Initial plans take a few seconds to compute.")));
 
   (async function start() {
     try {

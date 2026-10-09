@@ -18,7 +18,7 @@ def test_pages(client):
     assert "Staffing Planner" in app_page.text and "/static/app.js" in app_page.text
     assert "default-src 'self'" in app_page.headers["content-security-policy"]
     welcome = client.get("/welcome").text
-    assert "About this prototype" in welcome and "The park is made up" in welcome
+    assert "About this prototype" in welcome and "Synthetic data" in welcome
     assert "<script>" not in welcome  # strict CSP: no inline scripts on our own pages
     panel = client.get("/dev/panel.html").text
     assert "__APP_CSS__" not in panel and "__CHARTS_JS__" not in panel and "renderForecast" in panel
