@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>References · Event Staffing Planner</title>
+<meta name="description" content="The research, methods and software that Event Staffing Planner builds on.">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
+<link rel="icon" href="/static/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
+</head>
+<body class="min-h-screen bg-base-100">
+<header class="navbar border-b border-base-300 bg-base-100 px-4">
+  <a href="/" class="flex items-center gap-2.5 text-xl">
+    <img src="/static/brand/logo.svg" class="size-9 shrink-0" alt="">
+    <span class="brand-name"><span class="hidden sm:inline">Event </span>Staffing <span class="text-primary">Planner</span></span>
+  </a>
+</header>
+<main class="mx-auto w-full max-w-3xl px-4 py-8">
+  <h1 class="text-3xl font-bold">References</h1>
+  <p class="mt-2 text-base-content/80">The research, methods and software this tool builds on. Each entry states how it is used here. Entries were checked against publisher or bibliographic records in October 2026.</p>
+
+  <section class="mt-8 space-y-4">
+    <h2 class="text-xl font-bold">Forecasting and uncertainty</h2>
+    <ol class="space-y-4">
+      <li><p>Koenker, R., and Bassett, G. (1978). Regression quantiles. <em>Econometrica</em>, 46(1), 33–50. <a class="link" href="https://doi.org/10.2307/1913643">doi:10.2307/1913643</a></p>
+        <p class="text-sm text-base-content/75">Used for: the quantile loss behind the median, 10th and 90th percentile forecasts.</p></li>
+      <li><p>Friedman, J. H. (2001). Greedy function approximation: A gradient boosting machine. <em>The Annals of Statistics</em>, 29(5), 1189–1232. <a class="link" href="https://doi.org/10.1214/aos/1013203451">doi:10.1214/aos/1013203451</a></p>
+        <p class="text-sm text-base-content/75">Used for: gradient boosting, the learning method of each forecasting model.</p></li>
+      <li><p>Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., Ma, W., Ye, Q., and Liu, T.-Y. (2017). LightGBM: A highly efficient gradient boosting decision tree. <em>Advances in Neural Information Processing Systems 30</em> (NeurIPS 2017).</p>
+        <p class="text-sm text-base-content/75">Used for: histogram-based gradient boosting, the approach of the scikit-learn models used here.</p></li>
+      <li><p>Efron, B. (1979). Bootstrap methods: Another look at the jackknife. <em>The Annals of Statistics</em>, 7(1), 1–26. <a class="link" href="https://doi.org/10.1214/aos/1176344552">doi:10.1214/aos/1176344552</a></p>
+        <p class="text-sm text-base-content/75">Used for: the bootstrap. Each ensemble member is trained on a resampled history.</p></li>
+      <li><p>Lakshminarayanan, B., Pritzel, A., and Blundell, C. (2017). Simple and scalable predictive uncertainty estimation using deep ensembles. <em>Advances in Neural Information Processing Systems 30</em> (NeurIPS 2017).</p>
+        <p class="text-sm text-base-content/75">Used for: ensembles as a practical estimate of predictive uncertainty.</p></li>
+      <li><p>Hüllermeier, E., and Waegeman, W. (2021). Aleatoric and epistemic uncertainty in machine learning: An introduction to concepts and methods. <em>Machine Learning</em>, 110, 457–506. <a class="link" href="https://doi.org/10.1007/s10994-021-05946-3">doi:10.1007/s10994-021-05946-3</a></p>
+        <p class="text-sm text-base-content/75">Used for: splitting total variance into the average variance within ensemble members (day-to-day variation) and the variance between members (limited history).</p></li>
+      <li><p>Der Kiureghian, A., and Ditlevsen, O. (2009). Aleatory or epistemic? Does it matter? <em>Structural Safety</em>, 31(2), 105–112. <a class="link" href="https://doi.org/10.1016/j.strusafe.2008.06.020">doi:10.1016/j.strusafe.2008.06.020</a></p>
+        <p class="text-sm text-base-content/75">Used for: the distinction between uncertainty that more data can reduce (limited history) and uncertainty it cannot (day-to-day variation).</p></li>
+      <li><p>Gneiting, T., Balabdaoui, F., and Raftery, A. E. (2007). Probabilistic forecasts, calibration and sharpness. <em>Journal of the Royal Statistical Society: Series B</em>, 69(2), 243–268. <a class="link" href="https://doi.org/10.1111/j.1467-9868.2007.00587.x">doi:10.1111/j.1467-9868.2007.00587.x</a></p>
+        <p class="text-sm text-base-content/75">Used for: calibration as the standard for the backtest. The 80% range should contain about 80% of arrivals on days held out from training.</p></li>
+    </ol>
+  </section>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold">Staffing, queueing and optimization</h2>
+    <ol class="space-y-4">
+      <li><p>Deb, K., Pratap, A., Agarwal, S., and Meyarivan, T. (2002). A fast and elitist multiobjective genetic algorithm: NSGA-II. <em>IEEE Transactions on Evolutionary Computation</em>, 6(2), 182–197. <a class="link" href="https://doi.org/10.1109/4235.996017">doi:10.1109/4235.996017</a></p>
+        <p class="text-sm text-base-content/75">Used for: NSGA-II, the algorithm that searches for staffing plans that trade staff cost against waiting time.</p></li>
+      <li><p>Blank, J., and Deb, K. (2020). pymoo: Multi-objective optimization in Python. <em>IEEE Access</em>, 8, 89497–89509. <a class="link" href="https://doi.org/10.1109/ACCESS.2020.2990567">doi:10.1109/ACCESS.2020.2990567</a></p>
+        <p class="text-sm text-base-content/75">Used for: the NSGA-II implementation.</p></li>
+      <li><p>Halfin, S., and Whitt, W. (1981). Heavy-traffic limits for queues with many exponential servers. <em>Operations Research</em>, 29(3), 567–588. <a class="link" href="https://doi.org/10.1287/opre.29.3.567">doi:10.1287/opre.29.3.567</a></p>
+        <p class="text-sm text-base-content/75">Used for: square-root safety staffing, which seeds the search with good starting plans.</p></li>
+      <li><p>Sakasegawa, H. (1977). An approximation formula L<sub>q</sub> ≃ α·ρ<sup>β</sup>/(1−ρ). <em>Annals of the Institute of Statistical Mathematics</em>, 29, Part A, 67.</p>
+        <p class="text-sm text-base-content/75">Used for: the approximation of the mean queue length within each hour.</p></li>
+      <li><p>Green, L. V., Kolesar, P. J., and Whitt, W. (2007). Coping with time-varying demand when setting staffing requirements for a service system. <em>Production and Operations Management</em>, 16(1), 13–39. <a class="link" href="https://doi.org/10.1111/j.1937-5956.2007.tb00164.x">doi:10.1111/j.1937-5956.2007.tb00164.x</a></p>
+        <p class="text-sm text-base-content/75">Used for: staffing for demand that changes hour by hour, including fluid models for periods of overload. The waiting model carries the backlog from one hour to the next.</p></li>
+      <li><p>Bassamboo, A., Randhawa, R. S., and Zeevi, A. (2010). Capacity sizing under parameter uncertainty: Safety staffing principles revisited. <em>Management Science</em>, 56(10), 1668–1686. <a class="link" href="https://doi.org/10.1287/mnsc.1100.1203">doi:10.1287/mnsc.1100.1203</a></p>
+        <p class="text-sm text-base-content/75">Used for: scoring plans on days sampled from the forecast. When the arrival rate itself is uncertain, square-root staffing alone is not sufficient.</p></li>
+      <li><p>Fildes, R., Goodwin, P., Lawrence, M., and Nikolopoulos, K. (2009). Effective forecasting and judgmental adjustments: An empirical evaluation and strategies for improvement in supply-chain planning. <em>International Journal of Forecasting</em>, 25(1), 3–23. <a class="link" href="https://doi.org/10.1016/j.ijforecast.2008.11.010">doi:10.1016/j.ijforecast.2008.11.010</a></p>
+        <p class="text-sm text-base-content/75">Used for: evidence that judgmental adjustments to system forecasts can improve accuracy but also carry biases. Planners' notes therefore become explicit constraints that are reviewed before they take effect.</p></li>
+    </ol>
+  </section>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold">Explanations and their presentation</h2>
+    <ol class="space-y-4">
+      <li><p>Liao, Q. V., Gruen, D., and Miller, S. (2020). Questioning the AI: Informing design practices for explainable AI user experiences. <em>Proceedings of CHI 2020</em>, 1–15. <a class="link" href="https://doi.org/10.1145/3313831.3376590">doi:10.1145/3313831.3376590</a></p>
+        <p class="text-sm text-base-content/75">Used for: organizing explanations around the questions users ask. The explanation layer answers why, how sure and what would change it.</p></li>
+      <li><p>Miller, T. (2019). Explanation in artificial intelligence: Insights from the social sciences. <em>Artificial Intelligence</em>, 267, 1–38. <a class="link" href="https://doi.org/10.1016/j.artint.2018.07.007">doi:10.1016/j.artint.2018.07.007</a></p>
+        <p class="text-sm text-base-content/75">Used for: explanations as contrastive answers, the basis of the "what would change it" step.</p></li>
+      <li><p>Wachter, S., Mittelstadt, B., and Russell, C. (2018). Counterfactual explanations without opening the black box: Automated decisions and the GDPR. <em>Harvard Journal of Law and Technology</em>, 31(2). <a class="link" href="https://arxiv.org/abs/1711.00399">arXiv:1711.00399</a></p>
+        <p class="text-sm text-base-content/75">Used for: counterfactual explanations. Here they are the neighbouring plans on the trade-off and the narrower forecast range without limited history.</p></li>
+      <li><p>Springer, A., and Whittaker, S. (2020). Progressive disclosure: When, why, and how do users want algorithmic transparency information? <em>ACM Transactions on Interactive Intelligent Systems</em>, 10(4), 29:1–29:32. <a class="link" href="https://doi.org/10.1145/3374218">doi:10.1145/3374218</a></p>
+        <p class="text-sm text-base-content/75">Used for: progressive disclosure. The explanation layer opens on request and shows one step at a time.</p></li>
+      <li><p>Shneiderman, B. (1996). The eyes have it: A task by data type taxonomy for information visualizations. <em>Proceedings of the IEEE Symposium on Visual Languages</em>, 336–343. <a class="link" href="https://doi.org/10.1109/VL.1996.545307">doi:10.1109/VL.1996.545307</a></p>
+        <p class="text-sm text-base-content/75">Used for: overview first, details on demand. Each page shows a summary, with explanations behind a button.</p></li>
+      <li><p>Szymanski, M., Millecamp, M., and Verbert, K. (2021). Visual, textual or hybrid: The effect of user expertise on different explanations. <em>Proceedings of IUI 2021</em>, 109–119. <a class="link" href="https://doi.org/10.1145/3397481.3450662">doi:10.1145/3397481.3450662</a></p>
+        <p class="text-sm text-base-content/75">Used for: the Format preference, which shows the "why" step as a chart, as text or as both.</p></li>
+      <li><p>Millecamp, M., Htun, N. N., Conati, C., and Verbert, K. (2020). What's in a user? Towards personalising transparency for music recommender interfaces. <em>Proceedings of UMAP 2020</em>, 173–182. <a class="link" href="https://doi.org/10.1145/3340631.3394844">doi:10.1145/3340631.3394844</a></p>
+        <p class="text-sm text-base-content/75">Used for: adapting transparency to the user. The Wording preference switches between plain and technical terms.</p></li>
+    </ol>
+  </section>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold">Communicating uncertainty and human-AI interaction</h2>
+    <ol class="space-y-4">
+      <li><p>Bhatt, U., Antorán, J., Zhang, Y., Liao, Q. V., et al. (2021). Uncertainty as a form of transparency: Measuring, communicating, and using uncertainty. <em>Proceedings of AIES 2021</em>. <a class="link" href="https://doi.org/10.1145/3461702.3462571">doi:10.1145/3461702.3462571</a></p>
+        <p class="text-sm text-base-content/75">Used for: presenting forecast uncertainty as part of the system's transparency, alongside explanations.</p></li>
+      <li><p>van der Bles, A. M., van der Linden, S., Freeman, A., Mitchell, J., Galvao, A., Zaval, L., and Spiegelhalter, D. (2019). Communicating uncertainty about facts, numbers and science. <em>Royal Society Open Science</em>, 6(5), 181870. <a class="link" href="https://doi.org/10.1098/rsos.181870">doi:10.1098/rsos.181870</a></p>
+        <p class="text-sm text-base-content/75">Used for: guidance on communicating uncertainty in numbers. Both wordings keep the numeric ranges.</p></li>
+      <li><p>Amershi, S., Weld, D., Vorvoreanu, M., et al. (2019). Guidelines for human-AI interaction. <em>Proceedings of CHI 2019</em>.</p>
+        <p class="text-sm text-base-content/75">Used for: design guidelines for human-AI interaction, applied in the confirmation step for changes proposed in Claude.</p></li>
+    </ol>
+  </section>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold">Software and protocols</h2>
+    <ol class="space-y-4">
+      <li><p>Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., and Duchesnay, É. (2011). Scikit-learn: Machine learning in Python. <em>Journal of Machine Learning Research</em>, 12, 2825–2830. <a class="link" href="https://jmlr.org/papers/v12/pedregosa11a.html">jmlr.org</a></p>
+        <p class="text-sm text-base-content/75">Used for: the forecasting models.</p></li>
+      <li><p>Model Context Protocol. Specification. <a class="link" href="https://modelcontextprotocol.io">modelcontextprotocol.io</a></p>
+        <p class="text-sm text-base-content/75">Used for: the connection between Claude and the server's tools.</p></li>
+      <li><p>MCP Apps: Interactive user interfaces for MCP (SEP-1865). <a class="link" href="https://modelcontextprotocol.io/seps/1865-mcp-apps-interactive-user-interfaces-for-mcp">modelcontextprotocol.io</a></p>
+        <p class="text-sm text-base-content/75">Used for: the panel that shows the charts inside Claude.</p></li>
+    </ol>
+  </section>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold">Related project</h2>
+    <ol class="space-y-4">
+      <li><p>Pratama, R., Wicaksono, M. W., and Ramadhan, F. I. (2026). AdviceIT: An instrument for studying explainable AI investment advice (version 2.15.0) [Software]. <a class="link" href="https://github.com/Raditya-P/AdviceIT">github.com/Raditya-P/AdviceIT</a></p>
+        <p class="text-sm text-base-content/75">Used for: the explanation design adapted here, which separates what is explained (why, how sure, what would change it) from how it is shown (chart, text or both).</p></li>
+    </ol>
+  </section>
+
+  <div class="mt-10 flex flex-wrap gap-2 border-t border-base-300 pt-6">
+    <a class="btn" href="/">Back</a>
+    <a class="btn btn-ghost" href="/privacy">Privacy</a>
+  </div>
+</main>
+</body>
+</html>

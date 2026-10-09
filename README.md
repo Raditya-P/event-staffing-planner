@@ -37,7 +37,8 @@ All data describes a fictional venue, Parkland Theme Park, with three entrances 
 - Generates a set of staffing plans from lowest cost to shortest queues, and reports each plan's 90th-percentile wait across sampled days.
 - Records changes described to Claude, such as an entrance closure, as constraints that take effect only after the planner confirms them.
 - Lets planners test changes in scenarios without affecting the official plan, and logs every decision with its author, time and source.
-- Provides the same functions on the website and in Claude, where an MCP Apps panel displays the charts in the conversation.
+- Explains each forecast and plan step by step: why, how sure, what would change it and, for plans, a stress test against higher or lower arrivals. Explanations can be shown as a chart, as text or both, in plain or technical wording.
+- Provides the same functions on the website and in Claude, where an MCP Apps panel displays the charts in the conversation. The [references page](https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/references) lists the research behind each method.
 
 ## How it works
 

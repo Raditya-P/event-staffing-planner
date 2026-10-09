@@ -138,6 +138,214 @@
     h("span", {}, row, text || "Calculating. This takes a few seconds.");
   }
 
+  /* ---------------- explanation layer: one button per chart, steps in order ----------------
+     Why, how sure and what would change it (question-driven explanation, Liao et al. 2020), each shown on
+     demand and one step at a time (progressive disclosure, Springer and Whittaker 2020). The format of the
+     "why" step (chart, text or both) follows Szymanski et al. (2021). Format and wording are the viewer's
+     own preferences, kept in this browser. Every sentence is computed from the forecast and the plans. */
+
+  const PREFS = { format: store.get("fm-format") || "hybrid", wording: store.get("fm-wording") || "technical" };
+  FC.setWording(PREFS.wording);
+  const WORDS = {
+    technical: { median: "median", range: "80% range", p90: "P90 wait", p90Means: "exceeded on 1 day in 10",
+                 vol: "day-to-day variation", hist: "limited history", histPart: "limited-history component" },
+    plain: { median: "most likely number", range: "likely range", p90: "busy-day wait", p90Means: "only 1 day in 10 is worse",
+             vol: "normal ups and downs", hist: "little past data", histPart: "part caused by little past data" },
+  };
+  const wd = () => WORDS[PREFS.wording];
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const para = (parent, text, cls) => h("p", cls ? { class: cls } : {}, parent, text);
+  let EX = null;
+
+  function openExplainer(title, steps) {
+    EX = { title, steps, i: 0 };
+    $("explainer").showModal();  // open first, so charts can measure the width they draw into
+    drawExplainer();
+  }
+  function drawExplainer() {
+    const step = EX.steps[EX.i];
+    $("ex-title").textContent = EX.title;
+    const ul = $("ex-steps");
+    ul.textContent = "";
+    EX.steps.forEach((s, k) => {
+      const li = h("li", { class: `step ${k <= EX.i ? "step-primary" : ""}`.trim() }, ul);
+      const b = h("button", { type: "button", class: "px-1 leading-tight", "aria-current": k === EX.i ? "step" : "false" }, li, s.title);
+      b.addEventListener("click", () => { EX.i = k; drawExplainer(); });
+    });
+    const prefs = $("ex-prefs");
+    prefs.textContent = "";
+    if (step.formats) segmented(prefs, "Format", "format", [["visual", "Chart"], ["textual", "Text"], ["hybrid", "Both"]]);
+    segmented(prefs, "Wording", "wording", [["plain", "Plain"], ["technical", "Technical"]]);
+    const body = $("ex-body");
+    body.textContent = "";
+    step.render(body);
+    $("ex-back").disabled = EX.i === 0;
+    $("ex-count").textContent = `${EX.i + 1} of ${EX.steps.length}`;
+    $("ex-next").textContent = EX.i === EX.steps.length - 1 ? "Done" : "Next";
+  }
+  function segmented(parent, label, key, options) {
+    const wrap = h("div", { class: "flex items-center gap-2" }, parent);
+    h("span", { class: "text-base-content/70" }, wrap, label);
+    const group = h("div", { class: "join", role: "group", "aria-label": label }, wrap);
+    for (const [value, text] of options) {
+      const on = PREFS[key] === value;
+      const b = h("button", { type: "button", class: `btn btn-xs join-item ${on ? "btn-primary" : ""}`.trim(), "aria-pressed": String(on) }, group, text);
+      b.addEventListener("click", () => {
+        PREFS[key] = value;
+        store.set(`fm-${key}`, value);
+        if (key === "wording") { FC.setWording(value); S.dirty = true; }  // the page's own charts redraw when the layer closes
+        drawExplainer();
+      });
+    }
+  }
+  $("ex-back").addEventListener("click", () => { if (EX.i > 0) { EX.i -= 1; drawExplainer(); } });
+  $("ex-next").addEventListener("click", () => { if (EX.i < EX.steps.length - 1) { EX.i += 1; drawExplainer(); } else $("explainer").close(); });
+
+  function byFormat(body, drawChart, writeText) {
+    if (PREFS.format !== "textual") drawChart(h("div", {}, body));
+    if (PREFS.format !== "visual") writeText(h("div", { class: "space-y-2" }, body));
+  }
+  function navLink(parent, text, href) {
+    const a = link(parent, text, href, "btn btn-sm");
+    a.addEventListener("click", () => $("explainer").close());
+    return a;
+  }
+  function backtestSentence(fc) {
+    const c = pct(fc.backtest.coverage_p10_p90);
+    return PREFS.wording === "plain"
+      ? `Tested on past days it had not seen, the model's likely range held the actual number ${c} of the time, across all entrances (the aim is 8 times in 10).`
+      : `Backtest across all entrances: on days held out from training, ${c} of actual arrivals fell within the 80% range (target: 80%).`;
+  }
+  function askClaude(body, prompt) {
+    para(body, "Claude can explain this in conversation and answer follow-up questions. With the Event Staffing Planner connector, it works from the same forecast and plans.");
+    const area = h("textarea", { class: "textarea w-full bg-base-200 text-sm", rows: 3, readonly: "", "aria-label": "Question for Claude" }, body);
+    area.value = prompt;
+    const row = h("div", { class: "flex flex-wrap gap-2" }, body);
+    h("a", { class: "btn btn-primary btn-sm", href: `https://claude.ai/new?q=${encodeURIComponent(prompt)}`, target: "_blank", rel: "noopener" }, row, "Open in Claude");
+    const copy = btn(row, "Copy question", "btn-sm", async () => {
+      try { await navigator.clipboard.writeText(prompt); copy.textContent = "Copied"; } catch (e) { area.select(); }
+      setTimeout(() => { copy.textContent = "Copy question"; }, 1500);
+    });
+    navLink(row, "Set up the connector", "#/claude");
+  }
+
+  function explainForecast(fc, series) {
+    const pts = series.points;
+    const name = series.gate_name.replace(/\s*\(.*\)$/, "");
+    const peak = pts.reduce((a, b) => (b.p50 > a.p50 ? b : a));
+    const widest = [...pts].sort((a, b) => (b.p90 - b.p10) - (a.p90 - a.p10)).slice(0, 3).sort((a, b) => a.hour.localeCompare(b.hour));
+    const share = pts.reduce((t, p) => t + p.share_missing_history, 0) / pts.length;
+    const mostHist = pts.reduce((a, b) => (b.share_missing_history > a.share_missing_history ? b : a));
+    const dt = series.day_total;
+    openExplainer(`Explain the forecast: ${name}`, [
+      { title: "Why", formats: true, render: (b) => byFormat(b,
+        (box) => FC.renderGate(box, fc, series.gate_id, { strip: true, legend: true, height: 190 }),
+        (t) => {
+          const w = wd();
+          para(t, `Across the day, ${pct(1 - share)} of the uncertainty at this entrance comes from ${w.vol} and ${pct(share)} from ${w.hist}. The hours with the widest ${w.range}:`);
+          const ul = h("ul", { class: "list-disc space-y-1 pl-5" }, t);
+          for (const p of widest) h("li", {}, ul, `${p.hour}: ${fmt(p.p10)} to ${fmt(p.p90)} guests; ${pct(p.share_missing_history)} of this uncertainty comes from ${w.hist}.`);
+          para(t, share >= 0.35
+            ? `${cap(w.hist)} is a large part here, so the forecast at this entrance is less certain than its pattern alone suggests.`
+            : `${cap(w.vol)} dominates. It cannot be reduced, so staffing plans keep a small buffer for it.`);
+        }) },
+      { title: "How sure", render: (b) => {
+        const w = wd();
+        para(b, `At the peak hour, ${peak.hour}, the ${w.median} is ${fmt(peak.p50)} guests, with a ${w.range} of ${fmt(peak.p10)} to ${fmt(peak.p90)}.`);
+        para(b, `For the whole day at this entrance: about ${fmt(dt.p50)} guests (${w.range}: ${fmt(dt.p10)} to ${fmt(dt.p90)}).`);
+        para(b, PREFS.wording === "plain"
+          ? "On about 8 days out of 10, the actual number falls inside the likely range."
+          : "The 80% range is expected to contain actual arrivals on about 8 days out of 10.");
+        if (fc.backtest) para(b, backtestSentence(fc));
+        if (series.history) para(b, `This entrance has ${series.history.days} days of history${series.history.thin ? ", which is flagged as limited" : ""}.`);
+      } },
+      { title: "What would change it", render: (b) => {
+        const w = wd();
+        const narrow = mostHist.sd_total > 0 ? 1 - mostHist.sd_volatility / mostHist.sd_total : 0;
+        para(b, narrow >= 0.05
+          ? `The ${w.histPart} shrinks as more days of data accumulate. Without it, the ${w.range} at ${mostHist.hour} would be about ${pct(narrow)} narrower, leaving only ${w.vol}.`
+          : `Without the ${w.histPart}, the ${w.range} would be less than 5% narrower at every hour, because ${w.vol} dominates at this entrance.`);
+        para(b, "The forecast also depends on these inputs. A change in a scenario, such as a show time change or a competing event, updates them:");
+        const ul = h("ul", { class: "list-disc space-y-1 pl-5 text-sm" }, b);
+        for (const a of (fc.assumptions || []).slice(0, 6)) h("li", {}, ul, a.text);
+        navLink(h("div", { class: "flex flex-wrap gap-2" }, b), "Open scenarios", "#/whatifs");
+      } },
+      { title: "Ask Claude", render: (b) => askClaude(b,
+        `Using Event Staffing Planner, explain the ${name} forecast for ${S.event.name} on ${S.event.date}: why it is uncertain, how sure it is, and what would change it.`) },
+    ]);
+  }
+
+  const STRESS_CACHE = {};
+  let stressFactor = 1.1;
+  function stressStep(body, scenarioId, sel) {
+    para(body, "How this plan copes if more or fewer guests arrive than forecast. The staffing stays fixed; nothing is re-optimized.");
+    const box = h("div", {}, body);
+    const text = h("div", { class: "space-y-2" }, body);
+    const key = `${scenarioId}:${sel.id}:${S.revision}`;
+    const draw = (data) => {
+      FC.renderStress(box, data, { selected: stressFactor, onSelect: (f) => { stressFactor = f; drawExplainer(); } });
+      const p = data.points.find((q) => Math.abs(q.factor - stressFactor) < 1e-9) || data.points[0];
+      const level = Math.abs(stressFactor - 1) < 1e-9 ? "as forecast"
+        : `${Math.round(Math.abs(stressFactor - 1) * 100)}% ${stressFactor > 1 ? "above" : "below"} the forecast`;
+      text.textContent = "";
+      para(text, `With arrivals ${level}, the average wait is ${fmt1(p.expected_wait)} minutes per guest and the ${wd().p90} is ${fmt1(p.wait_p90)} minutes. The day's average wait exceeds ${fmt(data.wait_threshold_min)} minutes on ${pct(p.prob_wait_over_threshold)} of sampled days.`);
+      para(text, "Select a point on the chart to change the arrival level.", "text-sm text-base-content/70");
+    };
+    if (STRESS_CACHE[key]) { draw(STRESS_CACHE[key]); return; }
+    h("span", { class: "loading loading-dots loading-md" }, box);
+    api(`/api/scenarios/${scenarioId}/stress?solution_id=${encodeURIComponent(sel.id)}`)
+      .then((data) => { STRESS_CACHE[key] = data; if (box.isConnected) draw(data); })
+      .catch((e) => {
+        box.textContent = "";
+        const al = h("div", { role: "alert", class: "alert alert-warning alert-soft" }, box);
+        h("span", {}, al, e.message);
+      });
+  }
+
+  function explainPlan(st) {
+    const result = st.result, sel = st.selected_solution, fc = st.forecast, sc = st.scenario;
+    const sols = result.solutions;
+    const idx = sols.findIndex((p) => p.id === sel.id);
+    const lanes = result.hours.map((_, i) => result.gates.reduce((t, g) => t + sel.schedule[g][i], 0));
+    const hi = lanes.indexOf(Math.max(...lanes)), lo = lanes.indexOf(Math.min(...lanes));
+    const arrivals = (i) => { const r = fc && fc.totals.hourly.find((x) => x.hour === result.hours[i]); return r ? r.p50 : null; };
+    const what = { cheapest: "the lowest-cost plan the optimizer found",
+                   shortest_wait: "the plan with the shortest waits the optimizer found",
+                   balanced: "the balanced plan. It sits at the bend of the trade-off curve, where adding staff starts to buy smaller reductions in waiting time" }[sel.label]
+      || "a plan you selected from the trade-off";
+    const scope = sc.kind === "official" ? "the official plan" : `the plan in “${sc.name}”`;
+    openExplainer(`Explain ${scope}`, [
+      { title: "Why", formats: true, render: (b) => byFormat(b,
+        (box) => FC.renderSchedule(box, sel, result, S.event.gates, { title: false }),
+        (t) => {
+          para(t, `This is ${what}.`);
+          const a1 = arrivals(hi), a0 = arrivals(lo);
+          para(t, `It opens ${lanes[hi]} lanes at ${result.hours[hi]}${a1 != null ? `, when about ${fmt(a1)} guests arrive across all entrances` : ""}, and ${lanes[lo]} lanes at ${result.hours[lo]}${a0 != null ? `, when about ${fmt(a0)} arrive` : ""}.`);
+          para(t, `Waiting is longest for guests arriving around ${sel.peak_hour}: ${fmt1(sel.peak_hour_wait)} minutes on average.`);
+          for (const e of result.constraints_applied || []) para(t, `Shaped by a change in this scenario: ${e.effect}`, "text-sm text-base-content/75");
+        }) },
+      { title: "How sure", render: (b) => {
+        const w = wd();
+        para(b, `Average wait: ${fmt1(sel.expected_wait)} minutes per guest. ${cap(w.p90)}: ${fmt1(sel.wait_p90)} minutes (${w.p90Means}).`);
+        para(b, `On ${pct(sel.prob_wait_over_threshold)} of sampled days, the day's average wait exceeds ${fmt(result.wait_threshold_min)} minutes.`);
+        para(b, `These figures come from ${fmt(result.algorithm.check_samples)} days sampled from the forecast, so they include its uncertainty.`);
+        if (fc && fc.backtest) para(b, backtestSentence(fc));
+      } },
+      { title: "What would change it", render: (b) => {
+        const prev = sols[idx - 1], next = sols[idx + 1], first = sols[0], last = sols[sols.length - 1];
+        if (prev) para(b, `The next cheaper plan (${prev.staff_hours} staff-hours) saves ${eur(sel.staff_cost - prev.staff_cost)} and raises the average wait by ${fmt1(prev.expected_wait - sel.expected_wait)} minutes.`);
+        if (next) para(b, `The next plan with shorter waits (${next.staff_hours} staff-hours) costs ${eur(next.staff_cost - sel.staff_cost)} more and cuts the average wait by ${fmt1(sel.expected_wait - next.expected_wait)} minutes.`);
+        if (idx > 1) para(b, `The lowest-cost plan costs ${eur(first.staff_cost)}, with an average wait of ${fmt1(first.expected_wait)} minutes.`);
+        if (idx < sols.length - 2) para(b, `The shortest-wait plan costs ${eur(last.staff_cost)}, with an average wait of ${fmt1(last.expected_wait)} minutes.`);
+        para(b, "Changes such as an entrance closure or a staff limit alter the available plans. Test them in a scenario.", "text-sm text-base-content/75");
+        navLink(h("div", { class: "flex flex-wrap gap-2" }, b), "Open scenarios", "#/whatifs");
+      } },
+      { title: "Stress test", render: (b) => stressStep(b, sc.id, sel) },
+      { title: "Ask Claude", render: (b) => askClaude(b,
+        `Using Event Staffing Planner, explain ${scope} for ${S.event.name}: why it staffs each entrance as it does, how sure its waiting times are, and what a cheaper or faster plan would change.`) },
+    ]);
+  }
+
   /* ---------------- navigation ---------------- */
 
   const NAV = [
@@ -344,7 +552,9 @@
       FC.renderForecast(box, fc, { title: false, table: false, notes: false, legend: true });
     } else {
       const series = fc.series.find((s) => s.gate_id === S.gate);
-      h("h2", { class: "card-title" }, body, series.gate_name);
+      const titleRow = h("div", { class: "flex flex-wrap items-center justify-between gap-2" }, body);
+      h("h2", { class: "card-title" }, titleRow, series.gate_name);
+      btn(titleRow, "Explain this forecast", "btn-sm btn-primary", () => explainForecast(fc, series), "info");
       h("p", { class: "text-base-content/85" }, body, gateSentence(series));
       if (series.history && series.history.thin) {
         const al = h("div", { role: "alert", class: "alert alert-warning alert-soft" }, body);
@@ -409,6 +619,7 @@
       h("span", {}, al, `Under these changes, no plan keeps the average wait below ${result.max_expected_wait} minutes. The plans shown are the best available.`);
     }
     const actions = h("div", { class: "card-actions" }, top);
+    btn(actions, "Explain this plan", "btn-sm btn-primary", () => explainPlan(st), "info");
     if (sc.kind === "what_if") {
       const b = btn(actions, "Adopt as official plan", "btn-primary", () => confirmBox(
         "Adopt this plan?",
@@ -776,6 +987,7 @@
     });
     const more = h("div", { class: "grid gap-4 sm:grid-cols-2" }, root);
     for (const [href, title, text] of [["#/about", "About this prototype", "Data sources, methods and the research question."],
+                                        ["/references", "References", "The research and tools the methods are based on."],
                                         ["/privacy", "Privacy", "Data stored about you and how to delete it."]]) {
       const a = h("a", { href, class: "card card-border bg-base-100" }, more);
       const b = h("div", { class: "card-body" }, a);
@@ -815,6 +1027,7 @@
     h("h2", { class: "card-title" }, t, "Research question");
     h("p", {}, t, "Whether explaining the sources of forecast uncertainty, and converting planners' knowledge into constraints for the optimizer, helps people make better staffing decisions with less effort.");
     h("p", { class: "text-sm text-base-content/70" }, t, "Your workspace is private. You can reset it from the account menu at any time.");
+    link(h("div", { class: "card-actions" }, t), "References", "/references", "btn btn-sm");
   }
 
   /* ---------------- account actions ---------------- */

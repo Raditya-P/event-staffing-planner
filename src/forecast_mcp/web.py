@@ -101,6 +101,32 @@ async def api_scenario(request: Request) -> Response:
     return await _run(request, lambda s, a: S.scenario_state(s, a, request.path_params["scenario_id"]))
 
 
+async def api_stress(request: Request) -> Response:
+    """How a plan of the scenario's current result copes if arrivals are lower or higher than forecast.
+    The forecast is rebuilt outside the transaction, because the first build may train the model."""
+    scenario_id = request.path_params["scenario_id"]
+
+    def work():
+        actor = _actor(request)
+        with session_scope() as s:
+            state = S.scenario_state(s, actor, scenario_id)  # also checks the caller may see it
+        result, run = state["result"], state["run"]
+        if not result:
+            raise S.ServiceError("This scenario has no plans yet.", status=409)
+        if state["result_is_stale"] or (run and run["status"] in ("queued", "running")):
+            raise S.ServiceError("Plans are being recalculated. Try again when the run has finished.", status=409)
+        wanted = request.query_params.get("solution_id") or state["scenario"]["selected_solution_id"]
+        plan = next((p for p in result["solutions"] if p["id"] == wanted), None)
+        if plan is None:
+            raise S.ServiceError(f"Plan '{wanted}' is not in this scenario's latest result.", status=404)
+        return {"solution_id": plan["id"], **jobs.stress_test_plan(scenario_id, plan["schedule"])}
+
+    try:
+        return JSONResponse(await run_in_threadpool(work))
+    except S.ServiceError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=exc.status)
+
+
 # ---------------------------------------------------------------- change endpoints
 
 
@@ -221,6 +247,10 @@ async def privacy(request: Request) -> Response:
     return FileResponse(STATIC / "privacy.html")
 
 
+async def references(request: Request) -> Response:
+    return FileResponse(STATIC / "references.html")
+
+
 async def health(request: Request) -> Response:
     return JSONResponse({"ok": True})
 
@@ -253,6 +283,7 @@ def routes() -> list:
         Route("/", home),
         Route("/welcome", welcome),
         Route("/privacy", privacy),
+        Route("/references", references),
         Route("/api/facts", api_facts),
         Route("/healthz", health),
         Route("/api/me", api_me),
@@ -262,6 +293,7 @@ def routes() -> list:
         Route("/api/events/{event_id}/audit", api_audit),
         Route("/api/scenarios", api_create_scenario, methods=["POST"]),
         Route("/api/scenarios/{scenario_id}", api_scenario),
+        Route("/api/scenarios/{scenario_id}/stress", api_stress),
         Route("/api/scenarios/{scenario_id}/constraints", api_add_constraint, methods=["POST"]),
         Route("/api/scenarios/{scenario_id}/select", api_select, methods=["POST"]),
         Route("/api/scenarios/{scenario_id}/undo", api_undo, methods=["POST"]),
