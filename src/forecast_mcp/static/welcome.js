@@ -16,7 +16,7 @@
     back.disabled = current === 0;
     counter.textContent = `${current + 1} of ${panes.length}`;
     next.hidden = current === LAST;
-    next.textContent = current === 0 ? "Start the walkthrough" : current === LAST - 1 ? "Almost done" : "Next";
+    next.textContent = current === 0 ? "Begin" : "Next";
     if (push) history.pushState({ step: current }, "", `#step-${current + 1}`);
     const heading = panes[current].querySelector("h1, h2");
     if (heading && push) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: true }); }
@@ -41,7 +41,7 @@
   fetch("/api/me").then((r) => r.json()).then((me) => {
     document.getElementById("mcp-url").value = me.mcp_url;
     if (me.auth_mode !== "oidc" || me.signed_in) {
-      document.querySelectorAll("[data-signin]").forEach((a) => { a.href = "/"; a.textContent = a.classList.contains("btn-lg") ? "Open my dashboard" : "Open dashboard"; });
+      document.querySelectorAll("[data-signin]").forEach((a) => { a.href = "/"; a.textContent = "Open dashboard"; });
     }
   }).catch(() => {});
   fetch("/api/facts").then((r) => r.json()).then((f) => {
@@ -53,7 +53,7 @@
     if (days && f.history_days) days.textContent = String(f.history_days);
     const cov = document.querySelector("[data-fact-coverage]");
     if (cov && f.coverage != null) {
-      cov.textContent = `On past days it hadn't seen, the forecast's likely ranges contained ${Math.round(f.coverage * 100)}% of what really happened. The aim is ${Math.round((f.target || 0.8) * 100)}%, so its sense of its own uncertainty is about right.`;
+      cov.textContent = `On days held out from training, ${Math.round(f.coverage * 100)}% of actual arrivals fell within the forecast's 80% range (target: ${Math.round((f.target || 0.8) * 100)}%).`;
     }
   }).catch(() => {});
 

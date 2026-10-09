@@ -39,7 +39,7 @@ function textOf(result) {
 
 async function call(name, args) {
   const result = await app.callServerTool({ name, arguments: args });
-  if (result.isError) throw new Error(textOf(result) || "The server refused the request.");
+  if (result.isError) throw new Error(textOf(result) || "The request was rejected by the server.");
   return result.structuredContent;
 }
 
@@ -85,11 +85,11 @@ function render(data) {
 
 function renderForecastView(d) {
   const ev = d.event, sc = d.scenario, fc = d.forecast;
-  header(`${ev.name}: who arrives, and when?`, `${ev.weekday} ${ev.date} · ${ev.venue}`,
-    sc.kind === "official" ? "Official plan" : "What-if", sc.kind === "official" ? "badge-primary" : "badge-secondary");
+  header(`${ev.name}: arrival forecast`, `${ev.weekday} ${ev.date} · ${ev.venue}`,
+    sc.kind === "official" ? "Official plan" : "Scenario", sc.kind === "official" ? "badge-primary" : "badge-secondary");
   const t = fc.totals.day;
   h("p", { class: "text-sm text-base-content/85" }, root,
-    `About ${fmt(t.p50)} guests in total (likely ${fmt(t.p10)} to ${fmt(t.p90)}). The line is the most likely number each hour; the band is the likely range on 8 days out of 10.`);
+    `Expected total: about ${fmt(t.p50)} guests (80% range: ${fmt(t.p10)} to ${fmt(t.p90)}). The line shows the median per hour; the band shows the 80% range.`);
   const tabs = h("div", { role: "tablist", class: "tabs tabs-box tabs-sm w-fit flex-wrap" }, root);
   const tab = (key, label) => {
     const b = h("button", { role: "tab", type: "button", class: `tab ${gate === key ? "tab-active" : ""}`.trim(), "aria-selected": String(gate === key) }, tabs, label);
@@ -102,44 +102,44 @@ function renderForecastView(d) {
     FC.renderForecast(box, fc, { title: false, table: false, notes: false, legend: true });
   } else {
     const s = fc.series.find((x) => x.gate_id === gate) || fc.series[0];
-    if (s.history && s.history.thin) alertBox(root, `Little history here: only ${s.history.days} days of data. If you know something about this entrance, tell Claude.`, "warn");
+    if (s.history && s.history.thin) alertBox(root, `Limited history: only ${s.history.days} days of data. Share relevant information about this entrance with Claude.`, "warn");
     FC.renderGate(box, fc, s.gate_id, { strip: true, legend: true, height: 200 });
   }
   const thin = fc.series.filter((s) => s.history && s.history.thin);
-  if (gate === "all" && thin.length) alertBox(root, `${thin.map((s) => shortGate(s.gate_name)).join(" and ")} has little history, so the forecast there is less sure. What you know can help.`, "warn");
+  if (gate === "all" && thin.length) alertBox(root, `${thin.map((s) => shortGate(s.gate_name)).join(" and ")} has limited history, so its forecast is less certain. Local knowledge can reduce this uncertainty.`, "warn");
 }
 
 function statusLabel(status) {
-  return { pending: "Waiting for you", active: "Applied", rejected: "Rejected", removed: "Removed" }[status] || status;
+  return { pending: "Pending confirmation", active: "Applied", rejected: "Rejected", removed: "Removed" }[status] || status;
 }
 
 function renderProposal(d) {
   const c = d.constraint;
-  header("Did Claude understand you?", d.event ? `${d.event.name} · ${d.event.date}` : "", statusLabel(c.status),
+  header("Proposed change", d.event ? `${d.event.name} · ${d.event.date}` : "", statusLabel(c.status),
     c.status === "pending" ? "badge-warning" : c.status === "active" ? "badge-success" : "badge-ghost");
   const b = cardBody(root, c.status === "pending" ? "border-secondary" : "");
   if (c.note) {
-    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "You said");
+    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Original note");
     h("blockquote", { class: "border-l-4 border-secondary pl-3 italic" }, b, `“${c.note.text}”`);
   }
-  h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Understood as");
+  h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Interpretation");
   h("p", { class: "font-semibold" }, b, c.readback);
   if (c.interpretation && c.interpretation !== c.readback) h("p", { class: "text-sm text-base-content/75" }, b, c.interpretation);
   if (c.assumptions && c.assumptions.length) {
     const det = h("details", { class: "collapse collapse-arrow bg-base-200" }, b);
-    h("summary", { class: "collapse-title text-sm font-semibold" }, det, `What Claude had to guess (${c.assumptions.length})`);
+    h("summary", { class: "collapse-title text-sm font-semibold" }, det, `Assumptions (${c.assumptions.length})`);
     const ul = h("ul", { class: "collapse-content list-disc pl-8 text-sm" }, det);
     for (const a of c.assumptions) h("li", {}, ul, a);
   }
-  h("p", { class: "text-xs text-base-content/70" }, b, d.target ? `Goes into the what-if “${d.target.name}”.` : "Goes into a new what-if, so the official plan stays safe.");
+  h("p", { class: "text-xs text-base-content/70" }, b, d.target ? `Will be added to the scenario “${d.target.name}”.` : "Will be added to a new scenario; the official plan is not affected.");
   if (c.status !== "pending") {
     alertBox(b, c.status === "rejected" ? `Rejected${c.decision_reason ? ": " + c.decision_reason : "."}` : `Already ${statusLabel(c.status).toLowerCase()}.`, c.status === "rejected" ? "" : "ok");
     return;
   }
   const actions = h("div", { class: "card-actions items-center" }, b);
-  const ok = button(actions, "Yes, that's right", "btn-primary");
-  const no = button(actions, "No, reject it", "btn-ghost");
-  h("span", { class: "text-xs text-base-content/70" }, actions, "Nothing changes until you confirm.");
+  const ok = button(actions, "Confirm", "btn-primary");
+  const no = button(actions, "Reject", "btn-ghost");
+  h("span", { class: "text-xs text-base-content/70" }, actions, "No changes apply until you confirm.");
   const msg = h("div", {}, b);
   ok.addEventListener("click", async () => {
     ok.disabled = no.disabled = true;
@@ -152,7 +152,7 @@ function renderProposal(d) {
   });
   no.addEventListener("click", () => {
     actions.textContent = "";
-    const input = h("input", { class: "input input-sm w-full max-w-xs", type: "text", placeholder: "What did you mean? (optional)", "aria-label": "Reason" }, actions);
+    const input = h("input", { class: "input input-sm w-full max-w-xs", type: "text", placeholder: "Correct interpretation (optional)", "aria-label": "Reason" }, actions);
     const send = button(actions, "Reject", "btn-error btn-soft");
     button(actions, "Cancel", "btn-ghost", () => render(current));
     input.focus();
@@ -169,56 +169,56 @@ function renderProposal(d) {
 
 function renderScenario(d) {
   const ev = d.event, sc = d.scenario, run = d.run;
-  header(sc.kind === "official" ? "The official plan" : sc.name, `${ev.name} · ${ev.weekday} ${ev.date}`,
-    sc.kind === "official" ? "Official plan" : sc.status === "active" ? "What-if" : sc.status, sc.kind === "official" ? "badge-primary" : "badge-secondary");
+  header(sc.kind === "official" ? "Official plan" : sc.name, `${ev.name} · ${ev.weekday} ${ev.date}`,
+    sc.kind === "official" ? "Official plan" : sc.status === "active" ? "Scenario" : sc.status, sc.kind === "official" ? "badge-primary" : "badge-secondary");
 
   const running = run && (run.status === "queued" || run.status === "running");
   if (running) {
     const b = cardBody(root);
     const row = h("div", { class: "flex items-center gap-2 text-sm" }, b);
     h("span", { class: "loading loading-spinner loading-sm" }, row);
-    h("span", {}, row, run.stage === "forecast" ? "Updating the forecast…" : "Finding staffing plans…");
+    h("span", {}, row, run.stage === "forecast" ? "Updating the forecast…" : "Optimizing staffing plans…");
     h("progress", { class: "progress progress-secondary w-full", value: String(Math.round((run.stage === "optimize" ? 0.2 + 0.8 * run.progress : 0.1) * 100)), max: "100" }, b);
     pollTimer = setTimeout(refresh, 1500);
   } else if (run && run.status === "failed") {
-    alertBox(root, `Something went wrong while calculating: ${run.error}`, "error");
+    alertBox(root, `Calculation failed: ${run.error}`, "error");
   }
 
   if (d.constraints.length) {
     const b = cardBody(root);
-    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Changes in this plan");
+    h("div", { class: "text-xs font-semibold uppercase text-base-content/70" }, b, "Changes in this scenario");
     const ul = h("ul", { class: "list-disc space-y-1 pl-5 text-sm" }, b);
     for (const c of d.constraints) {
       const li = h("li", {}, ul, c.readback);
       if (c.note) h("div", { class: "text-xs italic text-base-content/70" }, li, `“${c.note.text}”`);
     }
   }
-  if (d.pending.length) alertBox(root, `${d.pending.length} more note${d.pending.length > 1 ? "s" : ""} waiting for your confirmation.`);
+  if (d.pending.length) alertBox(root, `${d.pending.length} more proposed change${d.pending.length > 1 ? "s" : ""} awaiting confirmation.`);
 
   if (!d.result) { if (!running) h("div", { class: "text-sm" }, root, "No result yet."); return; }
   const sel = d.selected_solution;
-  if (d.result.service_cap_met === false) alertBox(root, `With these changes no plan keeps the average wait under ${d.result.max_expected_wait} minutes. These are the best possible plans.`, "warn");
+  if (d.result.service_cap_met === false) alertBox(root, `Under these changes, no plan keeps the average wait below ${d.result.max_expected_wait} minutes. The plans shown are the best available.`, "warn");
 
   if (sel) {
     const stats = h("div", { class: "stats stats-vertical w-full border border-base-300 bg-base-100 sm:stats-horizontal" }, root);
     const stat = (title, value, desc) => { const s = h("div", { class: "stat py-3" }, stats); h("div", { class: "stat-title" }, s, title); h("div", { class: "stat-value text-2xl" }, s, value); h("div", { class: "stat-desc" }, s, desc); };
     stat("Staff cost", eur(sel.staff_cost), `${sel.staff_hours} staff-hours`);
     stat("Average wait", `${fmt1(sel.expected_wait)} min`, "per guest");
-    stat("Bad day", `${fmt1(sel.wait_p90)} min`, "9 days in 10 are better");
+    stat("P90 wait", `${fmt1(sel.wait_p90)} min`, "Exceeded on 1 day in 10");
     if (d.comparison) {
       const c = d.comparison;
       const more = c.delta_staff_hours >= 0 ? `${c.delta_staff_hours} more` : `${-c.delta_staff_hours} fewer`;
       const wait = c.delta_expected_wait <= 0 ? `${fmt1(-c.delta_expected_wait)} min shorter` : `${fmt1(c.delta_expected_wait)} min longer`;
-      alertBox(root, `Compared with the official plan: ${more} staff-hours (${c.delta_staff_cost >= 0 ? "+" : "−"}${eur(Math.abs(c.delta_staff_cost))}), waits ${wait}.`);
+      alertBox(root, `Compared with the official plan: ${more} staff-hours (${c.delta_staff_cost >= 0 ? "+" : "−"}${eur(Math.abs(c.delta_staff_cost))}); average wait ${wait}.`);
     }
   }
 
   const editable = d.editable && !running && !d.result_is_stale;
   const tb = cardBody(root);
-  h("div", { class: "font-semibold" }, tb, "All the staffing plans");
+  h("div", { class: "font-semibold" }, tb, "Candidate plans");
   h("p", { class: "text-xs text-base-content/70" }, tb, editable
-    ? "Each dot is a plan: further right costs more, lower means shorter queues. Click one to choose it."
-    : "Each dot is a plan: further right costs more, lower means shorter queues.");
+    ? "Each point is a plan. Plans further right cost more; lower plans have shorter queues. Select a point to choose that plan."
+    : "Each point is a plan. Plans further right cost more; lower plans have shorter queues.");
   const tradeoff = h("div", {}, tb);
   FC.renderTradeoff(tradeoff, d.result, {
     title: false,
@@ -244,15 +244,15 @@ function renderScenario(d) {
 
   const act = h("div", { class: "flex flex-wrap items-center gap-2" }, root);
   if (d.editable && sel && !running && !d.result_is_stale) {
-    const promote = button(act, "Make this the official plan…", "btn-primary");
+    const promote = button(act, "Adopt as official plan…", "btn-primary");
     promote.addEventListener("click", () => {
       act.textContent = "";
       const b = cardBody(act, "w-full border-primary");
-      h("div", { class: "font-bold" }, b, "Replace the official plan?");
+      h("div", { class: "font-bold" }, b, "Adopt this plan?");
       h("p", { class: "text-sm" }, b,
-        `“${sc.name}” with ${sel.staff_hours} staff-hours (${eur(sel.staff_cost)}, about ${fmt1(sel.expected_wait)} min wait) becomes the official plan. The current one stays in the history.`);
+        `“${sc.name}” (${sel.staff_hours} staff-hours, ${eur(sel.staff_cost)}, average wait about ${fmt1(sel.expected_wait)} min) will become the official plan. The current plan remains in the activity log.`);
       const row = h("div", { class: "card-actions" }, b);
-      const yes = button(row, "Yes, make it official", "btn-primary");
+      const yes = button(row, "Adopt plan", "btn-primary");
       button(row, "Cancel", "btn-ghost", () => render(current));
       yes.addEventListener("click", async () => {
         yes.disabled = true;

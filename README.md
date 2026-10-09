@@ -7,98 +7,78 @@
   </picture>
 </h1>
 
-**Forecasts how many guests arrive at each entrance and suggests staffing plans, in Claude and on the web.**
-
-A research prototype for event planners. The forecast shows how sure it is and why, a planner's notes become rules the staffing optimizer follows, and nothing changes until the planner confirms it.
+**Arrival forecasts and staffing plans for event entrances, available in Claude and on the web.**
 
 [![Version](https://img.shields.io/badge/version-0.1.0-2f7fd0)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-1f7a4d)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-555)](pyproject.toml)
-[![MCP Apps](https://img.shields.io/badge/MCP-Apps%20panel-2f7fd0)](#use-it-in-claude)
 
-[How it works](#how-it-works) · [Use it in Claude](#use-it-in-claude) · [Run it locally](#run-it-locally) · [Deploy](#deploy) · [Code map](#code-map) · [Live site](https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/)
+[Overview](#overview) · [How it works](#how-it-works) · [Using it in Claude](#using-it-in-claude) · [Getting started](#getting-started) · [Live demo](https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/)
 
 </div>
 
 ---
 
 <p align="center">
-  <img src="docs/screenshots/forecast.png" alt="The forecast page: guests expected at Main Gate hour by hour, with the likely range shaded" width="860">
+  <img src="docs/screenshots/forecast.png" alt="Arrival forecast for one entrance, with the median and the 80% range per hour" width="860">
 </p>
 
-## Why this exists
+## Overview
 
-Every event asks the same question: how many people should work at each entrance, and when? Too few and guests queue; too many and money is wasted. The hard input is the number of guests, which nobody knows exactly.
+Event Staffing Planner helps event planners decide how many staff to assign to each entrance, hour by hour. It forecasts guest arrivals, explains the uncertainty in each forecast, and proposes staffing plans that balance labour cost against guest waiting time.
 
-This prototype tests two ideas:
+The tool is a research prototype. It addresses two questions: whether explaining the sources of forecast uncertainty helps planners act on a forecast, and whether planners' knowledge, stated in plain language, can be turned into constraints that an optimizer follows once the planner confirms them.
 
-1. Showing planners why a forecast is unsure helps them act on it. The tool splits its uncertainty into ordinary day-to-day variation, which calls for a few extra staff, and limited history, which the planner's own knowledge can reduce.
-2. A planner's note in plain words ("roadworks close the north road from 5 to 8 pm") can become a formal rule for the staffing optimizer, as long as the planner checks how it was understood before anything changes.
+All data describes a fictional venue, Parkland Theme Park, with three entrances and 120 days of synthetic visitor history. Forecasts and staffing plans are computed from this history.
 
-## What is real and what is made up
+## Features
 
-| | |
-| --- | --- |
-| The park | Made up. Parkland Theme Park, its three entrances and 120 days of visitor history are synthetic, built to behave like real arrivals: busy mornings, an evening rush before the show, quieter rainy days and one entrance with only 6 days of history. |
-| The numbers | Calculated. Every forecast and staffing plan is computed from that history by the forecasting model and the optimizer; none of it is typed in. |
-| The forecast check | On past days the model had not seen, its 80% ranges are compared with what happened. The coverage appears on the welcome page and in the forecast notes. |
-| The methods | Deliberately simple stand-ins behind stable interfaces, so stronger models can replace them. |
+- Forecasts arrivals per entrance and hour with a median and an 80% range, and separates the uncertainty into day-to-day variation and limited history.
+- Generates a set of staffing plans from lowest cost to shortest queues, and reports each plan's 90th-percentile wait across sampled days.
+- Records changes described to Claude, such as an entrance closure, as constraints that take effect only after the planner confirms them.
+- Lets planners test changes in scenarios without affecting the official plan, and logs every decision with its author, time and source.
+- Provides the same functions on the website and in Claude, where an MCP Apps panel displays the charts in the conversation.
 
 ## How it works
 
-One server has two front doors that share one database:
+### Forecasting
 
-- The website (`/`): planners read the forecast, try what-ifs, compare staffing plans and make one official.
-- The MCP endpoint (`/mcp`): Claude shows the same charts inside the chat through an [MCP Apps](https://modelcontextprotocol.io) panel, writes down planners' notes as constraints, and explains the results.
+A bootstrapped ensemble of gradient-boosted quantile models produces the median and the 80% range for each entrance and hour. Using the law of total variance, the spread is divided into the average variance within ensemble members (day-to-day variation) and the variance between members (limited history). The 80% ranges are validated on days held out from training.
 
-A change made through either door shows up in the other within a couple of seconds.
+### Optimization
 
-### The forecast
+NSGA-II, a multi-objective evolutionary algorithm (pymoo), selects the number of lanes to staff at each entrance and hour, trading staff cost against expected waiting time. Waiting times are estimated with a fluid backlog model and Sakasegawa's M/M/c approximation.
 
-The forecast is a bootstrapped ensemble of gradient-boosted quantile models. Each entrance and hour gets a most likely value and an 80% range. By the law of total variance, the spread splits into the average variance inside each ensemble member (day-to-day variation) and the variance between members (limited history).
+### Constraint workflow
 
-### The staffing plans
-
-The plans come from NSGA-II (pymoo), a multi-objective evolutionary algorithm. It chooses how many lanes to staff at each entrance and hour, trading staff cost against guest waiting. Waits are estimated with a fluid backlog and Sakasegawa's M/M/c approximation, and every plan is also checked on sampled bad days. The result is a set of plans from cheapest to shortest queues, and the planner picks one.
-
-### A planner's note
-
-A note takes five steps:
-
-1. The planner tells Claude, for example, "roadworks close the north road from 5 to 8 pm".
-2. Claude calls `propose_constraint` with the planner's exact words, a structured constraint (`gate_closed`, north, 17:00 to 20:00) and anything it had to guess. The constraint is pending.
-3. The chat panel shows Claude's reading with Confirm and Reject buttons. These call tools that the host hides from Claude, so only the planner can confirm.
-4. A confirmed constraint goes into a what-if scenario, and the forecast and optimizer rerun on their own.
-5. The planner picks a plan and makes the what-if official. Only then does the official plan change. The history records who did what, when, through which door and from which note.
+1. The planner describes a change in Claude, for example "roadworks close the north road from 5 to 8 pm".
+2. Claude calls `propose_constraint` with the planner's wording, a structured constraint and any assumptions. The constraint is pending.
+3. The panel shows Claude's interpretation with Confirm and Reject buttons. These buttons call tools that are hidden from Claude, so only the planner can confirm.
+4. A confirmed constraint is added to a scenario, and the forecast and optimization run again.
+5. The planner selects a plan and adopts the scenario as the official plan. The activity log records each step.
 
 <p align="center">
-  <img src="docs/screenshots/plans.png" alt="The staffing plans page: each dot is a plan, staff cost against expected waiting time" width="430">
-  <img src="docs/screenshots/chat-panel.png" alt="The chat panel as Claude shows it: the forecast for all three entrances" width="430">
+  <img src="docs/screenshots/plans.png" alt="Staffing plans: staff cost against expected waiting time" width="430">
+  <img src="docs/screenshots/chat-panel.png" alt="The chat panel showing the forecast for all three entrances" width="430">
 </p>
 
-## Use it in Claude
+## Using it in Claude
 
-The live server runs at `https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io`.
+1. In Claude, open Settings > Connectors and add a custom connector with the address `https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/mcp`. Custom connectors require a paid Claude plan.
+2. Sign in when prompted. Each user receives a private copy of the demo venue.
+3. Ask in plain language, for example "Show me the forecast for Halloween Night".
 
-1. In Claude, open Settings, then Connectors, and add a custom connector with the address `https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/mcp`. Custom connectors need a paid Claude plan.
-2. Sign in when Claude asks. You get a private copy of the demo park.
-3. Ask in your own words, for example "Show me the forecast for Halloween Night" or "Roadworks close the north road from 5 to 8 pm".
-
-Tools Claude can call:
-
-| Tool | What it does |
+| Tool | Purpose |
 | --- | --- |
-| `list_events` | Events with their entrances, opening hours and scenarios |
-| `get_forecast` | Arrivals per entrance and hour, with the 80% range and why it is unsure |
-| `propose_constraint` | Records a planner's note as a pending constraint for them to confirm |
-| `create_what_if` | Starts a what-if as a copy of the official plan |
-| `get_scenario_result` | The cost versus waiting trade-off, the chosen plan and the comparison with the official plan |
+| `list_events` | Lists events with their entrances, opening hours and scenarios |
+| `get_forecast` | Shows arrivals per entrance and hour, with the 80% range and its sources of uncertainty |
+| `propose_constraint` | Records a planner's change as a pending constraint |
+| `create_what_if` | Creates a scenario as a copy of the official plan |
+| `get_scenario_result` | Shows the cost and waiting-time trade-off, the selected plan and the comparison with the official plan |
 
-The panel's buttons use five more tools (`confirm_constraint`, `reject_constraint`, `select_plan`, `promote_scenario`, `get_scenario_state`) that the host hides from Claude.
+## Getting started
 
-## Run it locally
-
-You need [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
@@ -108,123 +88,60 @@ uv sync
 uv run forecast-mcp
 ```
 
-Then open http://127.0.0.1:8000/. On first start the server creates the tables, generates the demo park and trains the forecast model, which takes about 10 seconds. Without sign-in settings it runs as a single local user.
+Open http://127.0.0.1:8000/. On first start, the server creates the database, generates the demo data and trains the forecast model, which takes about 10 seconds. Without sign-in settings, it runs for a single local user. To test the Claude panel without Claude, open http://127.0.0.1:8000/dev/panel.
 
-To try the chat panel without Claude, open http://127.0.0.1:8000/dev/panel. That page stands in for Claude: it calls the real tools and renders the panel Claude would show.
+### Configuration
 
-The Python package and the command are still called `forecast-mcp`, the project's working name.
+Settings are read from environment variables or a `.env` file. See `.env.example` for the full list.
 
-### Database
-
-Without `DATABASE_URL` the server uses a local SQLite file (`local.db`). To use Postgres (the live site uses [Neon](https://neon.tech)), copy `.env.example` to `.env` and set `DATABASE_URL`. `.env` is git-ignored.
-
-The schema is managed by Alembic migrations in `src/forecast_mcp/migrations`, applied at start-up. After changing a table in `db.py`, generate a migration:
-
-```bash
-uv run alembic revision --autogenerate -m "describe the change"
-```
-
-A test fails if `db.py` and the migrations disagree.
-
-## Sign-in
-
-With `AUTH_MODE=oidc`, people sign in through an OpenID Connect provider, and each new user gets a private workspace with a fresh copy of the demo. The live site uses WorkOS AuthKit.
-
-- Claude (`/mcp`): unauthenticated requests get `401` and a pointer to `/.well-known/oauth-protected-resource/mcp`, which names the provider. Claude registers itself with the provider, signs the user in and sends an access token. The server checks its signature, issuer, expiry and audience.
-- Website: a sign-in button using the authorization-code flow. The result is a signed session cookie.
-
-The provider must support Dynamic Client Registration or Client ID Metadata Documents, S256 PKCE and JWT access tokens with a JWKS. Register the redirect URIs `https://claude.ai/api/mcp/auth_callback` (Claude) and `<PUBLIC_BASE_URL>/auth/callback` (website).
-
-Settings: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `MCP_AUDIENCE` (usually `<PUBLIC_BASE_URL>/mcp`) and `SESSION_SECRET`. See `.env.example`. If the website login rejects PKCE, set `OIDC_PKCE=0`.
-
-With `AUTH_MODE=none`, anyone with the address can read and change the data. Use that only for a short test.
-
-## Deploy
-
-The server is one always-on process: web server, MCP endpoint and a background worker for forecast and optimization runs. The `Dockerfile` builds it for any container host. Set the variables from `.env.example` with `ENV=production`.
-
-### Azure Container Apps
-
-The live site runs on Azure Container Apps with an Azure for Students subscription. `deploy/azure.ps1` creates a resource group, a Basic container registry and a Container Apps environment and app. The app scales to zero when idle. Secrets go from `.env` into Azure and GitHub secrets.
-
-Student subscriptions cannot build images in Azure, so GitHub Actions runs the tests, builds the image, smoke-tests it and uploads it to the registry.
-
-1. Log in to Azure:
-
-   ```bash
-   az login
-   ```
-
-2. Run this once. It creates the registry, stores its credentials as GitHub secrets and starts a build:
-
-   ```bash
-   powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1 -ConnectGitHub
-   ```
-
-3. When the GitHub workflow has passed, deploy the image of the latest pushed commit. Repeat after each push:
-
-   ```bash
-   powershell -ExecutionPolicy Bypass -File .\deploy\azure.ps1
-   ```
-
-Sign-in stays on once the `OIDC_*` values are in `.env`. Add `-PruneImages` now and then to keep only the 5 newest images.
-
-`render.yaml` describes the same service for Render. It was written but not used, because Render Blueprints ask for a payment card.
-
-### Running it for free
-
-- Database: Neon's free plan. The idle worker checks the database only every 10 minutes so Neon can pause, old runs are deleted (two kept per scenario), the website stops polling while its tab is hidden, and each user's demo copy takes about 1 MB.
-- Sign-in: WorkOS AuthKit's free tier, in the staging environment.
-- Host: about 250 MB of memory. On hosts with a fraction of a CPU, set `ENGINE_PROFILE=light` and expect slower runs.
-
-Several instances can share one database: runs are claimed with `FOR UPDATE SKIP LOCKED`, and migrations take a lock. At start-up the server warns about unsafe production settings, and with `AUTH_MODE=oidc` and missing settings it refuses to start.
-
-## Website styles
-
-The pages use [daisyUI 5](https://daisyui.com) on Tailwind CSS 4, with a white and blue theme shared with [AdviceIT](https://github.com/Raditya-P/AdviceIT) and a dark theme for the chat panel. Text is set in IBM Plex Sans and headings in Instrument Sans, both under the SIL Open Font License and served from the site. Every text colour was checked for at least 4.5:1 contrast, and the two chart colours were checked for colour-blind separation.
-
-The stylesheet is built into `src/forecast_mcp/static/app.css`, which is committed and also inlined into the chat panel. After changing classes in the HTML or JS files, rebuild it with Tailwind's standalone program saved at `tools/tailwindcss.exe` (no Node.js needed):
-
-```bash
-powershell -ExecutionPolicy Bypass -File .\scripts\build-css.ps1
-```
-
-## Code map
-
-| Path | What it does |
+| Variable | Purpose |
 | --- | --- |
-| `src/forecast_mcp/constraints.py` | The shared constraint definition and its validation |
-| `src/forecast_mcp/engines/synthetic.py` | Synthetic history with controlled volatility and a thin-history entrance |
-| `src/forecast_mcp/engines/forecast.py` | Bootstrapped ensemble of quantile models and its out-of-bag backtest |
-| `src/forecast_mcp/engines/contract.py` | The forecast contract (p10/p50/p90, uncertainty split, totals, notes) and the text summary Claude reads |
-| `src/forecast_mcp/engines/optimizer.py` | NSGA-II staffing, the queue model and the bad-day check |
-| `src/forecast_mcp/services.py` | Rules both doors share: pending, confirm, undo, promote, history, limits |
-| `src/forecast_mcp/jobs.py` | The run queue and its worker: forecast, then optimize |
-| `src/forecast_mcp/auth.py`, `accounts.py` | Sign-in and one workspace per user |
-| `src/forecast_mcp/middleware.py` | Rate limits and security headers |
-| `src/forecast_mcp/mcp_server.py` | MCP tools, the server icon and the `ui://` panel resource |
-| `src/forecast_mcp/web.py` | The website's JSON API and pages, and mounting of `/mcp` |
-| `src/forecast_mcp/static/` | Website, chat panel, shared chart code, fonts and logo |
+| `DATABASE_URL` | Postgres connection string. Without it, a local SQLite file is used. |
+| `PUBLIC_BASE_URL` | Public HTTPS address of the server, required for Claude. |
+| `AUTH_MODE` | `oidc` to require sign-in through an OpenID Connect provider; `none` for local use. |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | Identity provider settings for sign-in. |
+| `MCP_AUDIENCE` | Expected audience of access tokens, usually `<PUBLIC_BASE_URL>/mcp`. |
+| `SESSION_SECRET` | Key for signing website sessions. |
+| `ENGINE_PROFILE` | `light` for hosts with limited CPU. |
 
-## Tests
+The identity provider must support Dynamic Client Registration or Client ID Metadata Documents, PKCE (S256) and JWT access tokens. Register `https://claude.ai/api/mcp/auth_callback` and `<PUBLIC_BASE_URL>/auth/callback` as redirect URIs. The live demo uses WorkOS AuthKit.
+
+### Deployment
+
+The `Dockerfile` builds a single container that serves the website, the MCP endpoint and a background worker for forecast and optimization runs. GitHub Actions runs the tests and builds the image on every push. `deploy/azure.ps1` deploys the image to Azure Container Apps.
+
+## Project structure
+
+| Path | Contents |
+| --- | --- |
+| `src/forecast_mcp/engines/` | Synthetic data, forecasting model, forecast contract and optimizer |
+| `src/forecast_mcp/constraints.py` | Constraint definitions and validation |
+| `src/forecast_mcp/services.py` | Shared rules: confirmation, scenarios, adoption, activity log and limits |
+| `src/forecast_mcp/jobs.py` | Run queue and background worker |
+| `src/forecast_mcp/mcp_server.py` | MCP tools and the chat panel resource |
+| `src/forecast_mcp/web.py` | Website pages and JSON API |
+| `src/forecast_mcp/auth.py`, `accounts.py` | Sign-in and per-user workspaces |
+| `src/forecast_mcp/static/` | Website, chat panel and shared chart code |
+| `src/forecast_mcp/migrations/` | Database migrations (Alembic) |
+
+## Testing
 
 ```bash
 uv run pytest
 ```
 
-The tests cover the engines, constraint validation, the confirm and promote rules, workspace isolation, sign-in (with a locally generated signing key), migrations matching the models, rate limits and headers, the MCP protocol (in-process and over HTTP) and the website's API.
+The tests cover the forecasting and optimization engines, constraint validation, confirmation and adoption rules, workspace isolation, sign-in, database migrations, security headers and rate limits, the MCP protocol and the website API.
 
-## Known limitations
+## Limitations
 
-- The ensemble understates uncertainty where data is scarce. East Gate has only 6 days of history, yet most of its range is attributed to day-to-day variation. The thin-history badge is therefore a separate, explicit signal.
-- Waiting times come from a per-hour approximation. They are good enough to compare plans, not to predict exact queue lengths.
-- Every workspace holds the demo park. There is no import for a venue's own data yet.
-- Views learn about changes by polling every 2 seconds, and runs execute one at a time.
+- The ensemble understates uncertainty where data is scarce. A separate limited-history indicator flags entrances with few days of data.
+- Waiting times come from an hourly approximation. They are suitable for comparing plans, not for predicting exact queue lengths.
+- Every workspace uses the demo venue. Importing a venue's own data is not yet supported.
 
 ## Citation
 
-If you use this software, please cite it with the details in [CITATION.cff](CITATION.cff).
+To cite this software, use the metadata in [CITATION.cff](CITATION.cff).
 
 ## License
 
-The code is under the [MIT License](LICENSE). The fonts in `src/forecast_mcp/static/fonts` are under the SIL Open Font License; their license files sit next to them.
+Released under the [MIT License](LICENSE). The bundled fonts are licensed under the SIL Open Font License.

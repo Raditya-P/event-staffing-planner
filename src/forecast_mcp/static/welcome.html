@@ -28,9 +28,9 @@
   <ul class="steps steps-horizontal w-full text-xs sm:text-sm" id="steps" aria-label="Progress">
     <li class="step step-primary"><span class="px-1 leading-tight">Welcome</span></li>
     <li class="step"><span class="px-1 leading-tight">The problem</span></li>
-    <li class="step"><span class="px-1 leading-tight">What it does</span></li>
-    <li class="step"><span class="px-1 leading-tight">About this prototype</span></li>
-    <li class="step"><span class="px-1 leading-tight">Start</span></li>
+    <li class="step"><span class="px-1 leading-tight">How it works</span></li>
+    <li class="step"><span class="px-1 leading-tight">About the prototype</span></li>
+    <li class="step"><span class="px-1 leading-tight">Get started</span></li>
   </ul>
 
   <div class="card bg-base-100 shadow-md mt-6">
@@ -48,107 +48,107 @@
             <circle cx="136" cy="80" r="7" fill="var(--color-success)"/><rect x="130" y="86" width="12" height="10" rx="5" fill="var(--color-success)"/>
             <circle cx="196" cy="82" r="6" fill="var(--color-secondary)" opacity=".6"/><circle cx="212" cy="84" r="6" fill="var(--color-info)" opacity=".6"/>
           </svg>
-          <h1 class="text-3xl sm:text-4xl font-bold leading-tight">Plan the right number of staff for every entrance</h1>
-          <p class="text-base-content/80 text-lg max-w-xl">This tool predicts how many guests will arrive, shows how sure it is, and suggests staffing plans. You make the final choice.</p>
-          <p class="text-base-content/70">The short walkthrough takes about a minute.</p>
+          <h1 class="text-3xl sm:text-4xl font-bold leading-tight">Staffing plans for every entrance, based on arrival forecasts</h1>
+          <p class="text-base-content/80 text-lg max-w-xl">Event Staffing Planner forecasts guest arrivals for each entrance and hour, shows the uncertainty in each forecast, and proposes staffing plans. The final decision stays with the planner.</p>
+          <p class="text-base-content/70">This introduction takes about one minute.</p>
         </div>
       </section>
 
       <!-- 2. The problem -->
       <section data-step="1" hidden class="page-enter space-y-4">
-        <h2 class="text-2xl font-bold">The problem</h2>
-        <p class="text-base-content/80">Every event has the same question: how many people should work at each entrance, and when?</p>
+        <h2 class="text-2xl font-bold">The planning problem</h2>
+        <p class="text-base-content/80">Every event requires a decision on how many staff to assign to each entrance, hour by hour.</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="card bg-secondary/15">
             <div class="card-body">
-              <h3 class="card-title">Too few staff</h3>
-              <p>Long queues, unhappy guests, people missing the show.</p>
+              <h3 class="card-title">Understaffing</h3>
+              <p>Long queues, lower guest satisfaction and guests arriving late for the show.</p>
             </div>
           </div>
           <div class="card bg-accent/20">
             <div class="card-body">
-              <h3 class="card-title">Too many staff</h3>
-              <p>People standing around, and money spent that could go elsewhere.</p>
+              <h3 class="card-title">Overstaffing</h3>
+              <p>Idle staff and labour costs that could be used elsewhere.</p>
             </div>
           </div>
         </div>
         <div role="alert" class="alert alert-info alert-soft">
-          <span>Nobody knows exactly how many guests will come. Rain, a concert in town or a new car park can all change it.</span>
+          <span>Attendance is uncertain. Weather, competing events nearby and changes to access, such as a new car park, all affect arrivals.</span>
         </div>
       </section>
 
       <!-- 3. What it does -->
       <section data-step="2" hidden class="page-enter space-y-4">
-        <h2 class="text-2xl font-bold">What this tool does</h2>
+        <h2 class="text-2xl font-bold">How it works</h2>
         <ul class="steps steps-vertical">
           <li class="step step-primary" data-content="1">
-            <div class="text-left py-2"><strong>Predicts arrivals</strong><br><span class="text-base-content/75">For each entrance and hour: the most likely number of guests, plus a range for good and bad days.</span></div>
+            <div class="text-left py-2"><strong>Forecasts arrivals</strong><br><span class="text-base-content/75">For each entrance and hour, a median estimate and an 80% range.</span></div>
           </li>
           <li class="step step-primary" data-content="2">
-            <div class="text-left py-2"><strong>Listens to what you know</strong><br><span class="text-base-content/75">Tell it about roadworks, another event or a schedule change. Nothing changes until you confirm.</span></div>
+            <div class="text-left py-2"><strong>Incorporates local knowledge</strong><br><span class="text-base-content/75">Roadworks, nearby events and schedule changes can be added as constraints. They apply only after you confirm them.</span></div>
           </li>
           <li class="step step-primary" data-content="3">
-            <div class="text-left py-2"><strong>Suggests staffing plans</strong><br><span class="text-base-content/75">From cheapest to shortest queues. You pick the balance that suits you.</span></div>
+            <div class="text-left py-2"><strong>Proposes staffing plans</strong><br><span class="text-base-content/75">A range of plans from lowest cost to shortest queues. You choose the trade-off.</span></div>
           </li>
         </ul>
-        <p class="text-base-content/70">You can use it on this website, or just by chatting with Claude.</p>
+        <p class="text-base-content/70">It is available on this website and in Claude through an MCP connector.</p>
       </section>
 
       <!-- 4. About this prototype -->
       <section data-step="3" hidden class="page-enter space-y-4">
         <h2 class="text-2xl font-bold">About this prototype</h2>
-        <p class="text-base-content/80">This is a research prototype. Here is what is made up and what is calculated.</p>
+        <p class="text-base-content/80">This is a research prototype that uses synthetic data.</p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="card bg-secondary/12">
             <div class="card-body p-4">
-              <h3 class="font-bold">The park is made up</h3>
-              <p class="text-sm text-base-content/80">Parkland Theme Park, its <span data-fact="gates">three</span> entrances and <span data-fact="history_days">120</span> days of visitor history are invented, built to behave like real arrivals: busy mornings, an evening rush before the show, rainy days, a brand-new gate.</p>
+              <h3 class="font-bold">Synthetic data</h3>
+              <p class="text-sm text-base-content/80">Parkland Theme Park, its <span data-fact="gates">three</span> entrances and <span data-fact="history_days">120</span> days of visitor history are fictional. The data reproduces realistic arrival patterns: morning peaks, an evening rush before the show, rainy days and a newly opened entrance.</p>
             </div>
           </div>
           <div class="card bg-primary/12">
             <div class="card-body p-4">
-              <h3 class="font-bold">The numbers are calculated</h3>
-              <p class="text-sm text-base-content/80">Nothing on screen is faked. Every forecast and plan is worked out live from that history by a forecasting model and an optimization algorithm.</p>
+              <h3 class="font-bold">Computed results</h3>
+              <p class="text-sm text-base-content/80">No figures are entered by hand. All forecasts and plans are computed from this history by a forecasting model and an optimization algorithm.</p>
             </div>
           </div>
           <div class="card bg-accent/18">
             <div class="card-body p-4">
-              <h3 class="font-bold">The forecast is checked</h3>
-              <p class="text-sm text-base-content/80" data-fact-coverage>On past days it hadn't seen, the forecast's likely ranges were checked against what really happened.</p>
+              <h3 class="font-bold">Validated forecast</h3>
+              <p class="text-sm text-base-content/80" data-fact-coverage>The forecast's 80% ranges are checked against actual arrivals on days held out from training.</p>
             </div>
           </div>
           <div class="card bg-info/12">
             <div class="card-body p-4">
-              <h3 class="font-bold">The methods are simple stand-ins</h3>
-              <p class="text-sm text-base-content/80">The model and the algorithm are deliberately simple, made to test the ideas. A real venue would plug in its own data and stronger models.</p>
+              <h3 class="font-bold">Simplified methods</h3>
+              <p class="text-sm text-base-content/80">The model and the algorithm are intentionally simple, designed to test the research questions. A production deployment would use the venue's own data and stronger models.</p>
             </div>
           </div>
         </div>
         <div role="alert" class="alert alert-soft">
-          <span><strong>What we are testing:</strong> whether showing <em>why</em> a forecast is unsure, and turning your knowledge into rules the planner follows, helps you make better staffing decisions.</span>
+          <span><strong>Research question:</strong> whether explaining the sources of forecast uncertainty, and converting planners' knowledge into constraints for the optimizer, leads to better staffing decisions.</span>
         </div>
       </section>
 
       <!-- 5. Start -->
       <section data-step="4" hidden class="page-enter">
         <div class="flex flex-col items-center text-center gap-4">
-          <h2 class="text-2xl font-bold">Ready to try it?</h2>
-          <p class="text-base-content/80 max-w-lg">Sign in and you get your own copy of the demo park. Nothing you do there is visible to anyone else, and you can reset it at any time.</p>
-          <a class="btn btn-primary btn-lg" data-signin href="/login">Sign in to start</a>
+          <h2 class="text-2xl font-bold">Get started</h2>
+          <p class="text-base-content/80 max-w-lg">Sign in to receive a private copy of the demo park. Your workspace is visible only to you and can be reset at any time.</p>
+          <a class="btn btn-primary btn-lg" data-signin href="/login">Sign in</a>
           <div class="divider">or</div>
-          <p class="text-base-content/80">Use it from Claude: add a custom connector with this address, then ask <q>Show me the forecast for Halloween Night.</q></p>
+          <p class="text-base-content/80">To use it in Claude, add a custom connector with this address, then ask, for example, <q>Show me the forecast for Halloween Night.</q></p>
           <div class="join w-full max-w-md">
             <input class="input join-item w-full font-mono text-sm" id="mcp-url" readonly aria-label="Address for the Claude connector" value="">
             <button class="btn join-item" type="button" id="copy">Copy</button>
           </div>
-          <p class="text-sm text-base-content/70">Custom connectors need a paid Claude plan. <a class="link" href="/privacy">How your data is handled</a></p>
+          <p class="text-sm text-base-content/70">Custom connectors require a paid Claude plan. <a class="link" href="/privacy">How your data is handled</a></p>
         </div>
       </section>
 
       <div class="card-actions justify-between items-center border-t border-base-300 pt-4">
         <button class="btn btn-ghost" type="button" id="back" disabled>Back</button>
         <span class="text-sm text-base-content/70" id="counter">1 of 5</span>
-        <button class="btn btn-primary" type="button" id="next">Start the walkthrough</button>
+        <button class="btn btn-primary" type="button" id="next">Begin</button>
       </div>
     </div>
   </div>
