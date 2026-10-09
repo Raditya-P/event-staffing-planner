@@ -31,23 +31,13 @@
   const eur = (n) => "EUR " + fmt(n);
   const pct = (n) => Math.round(n * 100) + "%";
 
-  /* Two wordings for the same numbers (the dashboard's Wording preference). The chat panel keeps "technical". */
-  const WORDS = {
-    technical: {
-      median: "Median", range: "80% range", line: "median", band: "80% range", p90: "P90 wait",
-      vol: "Day-to-day variation", hist: "Limited history",
-      volNote: "covered by a staffing buffer", histNote: "reducible with local knowledge",
-      backtest: (c) => `Backtest: on days held out from training, ${c} of actual arrivals fell within the 80% range (target: 80%).`,
-    },
-    plain: {
-      median: "Most likely", range: "Likely range", line: "most likely", band: "likely range (8 days in 10)", p90: "Busy-day wait",
-      vol: "Normal ups and downs", hist: "Little past data",
-      volNote: "plan a few extra staff", histNote: "what you know can help",
-      backtest: (c) => `On past days the model had not seen, the likely range held the actual number ${c} of the time (the aim is 8 times in 10).`,
-    },
+  /* The terms every chart uses, in one place. */
+  const words = {
+    median: "Median", range: "80% range", line: "median", band: "80% range", p90: "P90 wait",
+    vol: "Day-to-day variation", hist: "Limited history",
+    volNote: "covered by a staffing buffer", histNote: "reducible with local knowledge",
+    backtest: (c) => `Backtest: on days held out from training, ${c} of actual arrivals fell within the 80% range (target: 80%).`,
   };
-  let words = WORDS.technical;
-  function setWording(mode) { words = WORDS[mode] || WORDS.technical; }
   const uncertaintyLabels = () => ({ volatility: words.vol, missing_history: words.hist });
 
   function niceStep(max, ticks) {
@@ -472,5 +462,5 @@
     });
   }
 
-  window.FC = { renderForecast, renderGate, renderTradeoff, renderSchedule, renderStress, uncertaintyLegend, setWording, fmt, fmt1, eur, pct, h, svg };
+  window.FC = { renderForecast, renderGate, renderTradeoff, renderSchedule, renderStress, uncertaintyLegend, fmt, fmt1, eur, pct, h, svg };
 })();
