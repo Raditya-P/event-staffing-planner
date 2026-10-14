@@ -168,6 +168,20 @@ h1, h2, h3, .card-title, .font-heading { font-family: var(--font-head); letter-s
 :root:not([data-theme="planner-dark"]) :is(.alert-soft, .alert-outline, .alert-dash).alert-accent,
 :root:not([data-theme="planner-dark"]) :is(.badge-soft, .badge-outline, .badge-dash).badge-accent { color: #8a5a0b; }
 
+/* ---- Sidebar: on wide screens it can shrink to its icons (the button at the left of the top bar) ---- */
+@media (min-width: 64rem) {
+  #sidebar { transition: width 0.18s ease; overflow-x: hidden; }
+  .sidebar-collapsed #sidebar { width: 4.5rem; }
+  .sidebar-collapsed #sidebar .sidebar-brand { justify-content: center; padding-inline: 0; }
+  .sidebar-collapsed #sidebar :is(.sidebar-brand .brand-name, .sidebar-note) { display: none; }
+  .sidebar-collapsed #nav { padding-inline: 0.75rem; }
+  .sidebar-collapsed #nav a { position: relative; justify-content: center; padding-inline: 0; }
+  /* Labels stay in the page for screen readers; the links also get a tooltip. */
+  .sidebar-collapsed #nav .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .sidebar-collapsed #nav .badge { position: absolute; top: 0.1rem; right: 0.15rem; height: 1.05rem; min-width: 1.05rem; padding-inline: 0.2rem; font-size: 0.65rem; }
+}
+@media (prefers-reduced-motion: reduce) { #sidebar { transition: none; } }
+
 /* ---- Charts (SVG drawn by charts.js) ---- */
 [hidden] { display: none !important; }
 .fc-root { position: relative; font-size: 14px; line-height: 1.45; color: var(--text-primary); }

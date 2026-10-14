@@ -326,12 +326,35 @@
       const li = h("li", {}, nav);
       const a = h("a", { href: `#/${key}`, class: key === active ? "menu-active" : "" }, li);
       a.appendChild(icon(ic));
-      a.appendChild(document.createTextNode(label));
+      h("span", { class: "nav-label" }, a, label);
       if (key === "inbox" && S.event && S.event.pending.length) {
         h("span", { class: "badge badge-sm badge-secondary", "aria-label": `${S.event.pending.length} waiting` }, a, String(S.event.pending.length));
       }
     }
+    sidebarTitles();
   }
+
+  /* Wide screens: the sidebar can shrink to its icons. It starts open; this device remembers the last choice. */
+  const sidebarCollapsed = () => document.documentElement.classList.contains("sidebar-collapsed");
+  function sidebarTitles() {  // tooltips only when the labels are hidden
+    for (const a of $("nav").querySelectorAll("a")) {
+      if (sidebarCollapsed()) a.title = a.querySelector(".nav-label").textContent;
+      else a.removeAttribute("title");
+    }
+  }
+  function setSidebar(collapsed) {
+    document.documentElement.classList.toggle("sidebar-collapsed", collapsed);
+    const toggle = $("sidebar-toggle"), label = collapsed ? "Expand the sidebar" : "Collapse the sidebar";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+    sidebarTitles();
+  }
+  setSidebar(store.get("sidebar") === "collapsed");
+  $("sidebar-toggle").addEventListener("click", () => {
+    setSidebar(!sidebarCollapsed());
+    store.set("sidebar", sidebarCollapsed() ? "collapsed" : "open");
+  });
 
   function route() {
     const parts = location.hash.replace(/^#\/?/, "").split("/");
