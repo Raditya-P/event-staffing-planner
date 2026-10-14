@@ -380,6 +380,7 @@
     if (force === "nav") { wrap.classList.add("page-enter"); window.scrollTo(0, 0); page.focus({ preventScroll: true }); }
     else window.scrollTo(0, scroll);
     $("run-status").hidden = !isRunning();
+    $("sync").hidden = isRunning();  // one status at a time
   }
   window.addEventListener("hashchange", () => { $("nav-drawer").checked = false; render("nav"); });
   for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", () => { if (S.dirty) render(true); });
@@ -388,7 +389,11 @@
 
   async function loadMe() {
     S.me = await api("/api/me");
-    $("who").textContent = S.me.name ? `Signed in as ${S.me.name}` : "Signed in";
+    const name = S.me.name || "Local user";
+    $("who").textContent = name;
+    // Initials for the account button: "Raditya Pratama" gives RP, "ana@example.org" gives A.
+    const words = name.split("@")[0].split(/[\s._-]+/).filter(Boolean);
+    $("initials").textContent = ((words[0] || "?")[0] + (words.length > 1 && !name.includes("@") ? words[1][0] : "")).toUpperCase();
     $("signout-item").hidden = S.me.auth_mode !== "oidc";
     $("reset-item").hidden = !S.me.can_reset;
   }
