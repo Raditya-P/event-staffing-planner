@@ -12,7 +12,7 @@ date-released: "2026-10-09"
 year: 2026
 license: MIT
 repository-code: "https://github.com/Raditya-P/event-staffing-planner"
-url: "https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/"
+url: "https://event-staffing-planner.pages.dev/"
 keywords:
   - forecast uncertainty
   - staff scheduling

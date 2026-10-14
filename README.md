@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-1f7a4d)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-555)](pyproject.toml)
 
-[Overview](#overview) · [How it works](#how-it-works) · [Using it in Claude](#using-it-in-claude) · [Getting started](#getting-started) · [Live demo](https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/)
+[Overview](#overview) · [How it works](#how-it-works) · [Using it in Claude](#using-it-in-claude) · [Getting started](#getting-started) · [Live demo](https://event-staffing-planner.pages.dev/)
 
 </div>
 
@@ -38,7 +38,7 @@ All data describes a fictional venue, Parkland Theme Park, with three entrances 
 - Records changes described to Claude, such as an entrance closure, as constraints that take effect only after the planner confirms them.
 - Lets planners test changes in scenarios without affecting the official plan, and logs every decision with its author, time and source.
 - Explains each forecast and plan step by step: why, how sure, what would change it and, for plans, a stress test against higher or lower arrivals. Each explanation combines a chart with sentences.
-- Provides the same functions on the website and in Claude, where an MCP Apps panel displays the charts in the conversation. The [references page](https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/references) lists the research behind each method.
+- Provides the same functions on the website and in Claude, where an MCP Apps panel displays the charts in the conversation. The [references page](https://event-staffing-planner.pages.dev/references) lists the research behind each method.
 
 ## How it works
 
@@ -65,7 +65,7 @@ NSGA-II, a multi-objective evolutionary algorithm (pymoo), selects the number of
 
 ## Using it in Claude
 
-1. In Claude, open Settings > Connectors and add a custom connector with the address `https://forecast-mcp.ashyground-d96d5f06.malaysiawest.azurecontainerapps.io/mcp`. Custom connectors require a paid Claude plan.
+1. In Claude, open Settings > Connectors and add a custom connector with the address `https://event-staffing-planner.pages.dev/mcp`. Custom connectors require a paid Claude plan.
 2. Sign in when prompted. Each user receives a private copy of the demo venue.
 3. Ask in plain language, for example "Show me the forecast for Halloween Night".
 
@@ -109,7 +109,7 @@ The identity provider must support Dynamic Client Registration or Client ID Meta
 
 ### Deployment
 
-The `Dockerfile` builds a single container that serves the website, the MCP endpoint and a background worker for forecast and optimization runs. GitHub Actions runs the tests and builds the image on every push. `deploy/azure.ps1` deploys the image to Azure Container Apps.
+The `Dockerfile` builds a single container that serves the website, the MCP endpoint and a background worker for forecast and optimization runs. GitHub Actions runs the tests and builds the image on every push. `deploy/azure.ps1` deploys the image to Azure Container Apps, and `deploy/cloudflare.ps1` deploys a Cloudflare Pages proxy that serves it at the `pages.dev` address.
 
 ## Project structure
 

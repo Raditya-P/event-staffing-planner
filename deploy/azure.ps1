@@ -182,10 +182,12 @@ if (-not (az-quiet containerapp show --name $AppName --resource-group $ResourceG
     az containerapp update --name $AppName --resource-group $ResourceGroup --image $image --set-env-vars @envVars --output none
 }
 
-# The app needs to know its own public address (sign-in redirects, the MCP address shown to users).
+# The app needs to know its own public address (sign-in redirects, the MCP address shown to users). With a proxy in
+# front (DEPLOY_PUBLIC_URL in .env, such as the Cloudflare Pages address), that is the proxy's address; the Azure host
+# the proxy forwards to stays an accepted Host header.
 $fqdn = (az containerapp show --name $AppName --resource-group $ResourceGroup --query "properties.configuration.ingress.fqdn" --output tsv).Trim()
-$url = "https://$fqdn"
-az containerapp update --name $AppName --resource-group $ResourceGroup --set-env-vars "PUBLIC_BASE_URL=$url" --output none
+$url = if ($dotenv["DEPLOY_PUBLIC_URL"]) { $dotenv["DEPLOY_PUBLIC_URL"].TrimEnd("/") } else { "https://$fqdn" }
+az containerapp update --name $AppName --resource-group $ResourceGroup --set-env-vars "PUBLIC_BASE_URL=$url" "ALLOWED_HOSTS=$fqdn" --output none
 
 if ($PruneImages) {
     Step "Removing old images (keeping the 5 newest)"

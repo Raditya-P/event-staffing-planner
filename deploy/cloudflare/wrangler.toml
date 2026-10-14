@@ -1,0 +1,5 @@
+# Cloudflare Pages project for the proxy in site/_worker.js. Deploy with deploy/cloudflare.ps1.
+name = "event-staffing-planner"
+pages_build_output_dir = "./site"
+# 2024-11-11 or later is needed for the fetch() cache option the proxy uses.
+compatibility_date = "2025-06-01"
