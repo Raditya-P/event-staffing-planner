@@ -101,6 +101,7 @@ Settings are read from environment variables or a `.env` file. See `.env.example
 | `PUBLIC_BASE_URL` | Public HTTPS address of the server, required for Claude. |
 | `AUTH_MODE` | `oidc` to require sign-in through an OpenID Connect provider; `none` for local use. |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | Identity provider settings for sign-in. |
+| `WORKOS_API_KEY`, `WORKOS_CLIENT_ID` | With WorkOS: sign-in pages on this site instead of the provider's hosted page. |
 | `MCP_AUDIENCE` | Expected audience of access tokens, usually `<PUBLIC_BASE_URL>/mcp`. |
 | `SESSION_SECRET` | Key for signing website sessions. |
 | `ENGINE_PROFILE` | `light` for hosts with limited CPU. |

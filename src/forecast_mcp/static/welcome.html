@@ -39,14 +39,25 @@
       <!-- 1. Welcome -->
       <section data-step="0" class="page-enter">
         <div class="flex flex-col items-center text-center gap-4">
-          <svg viewBox="0 0 240 120" class="w-full max-w-xs" role="img" aria-label="An entrance gate with guests walking in">
-            <rect x="20" y="96" width="200" height="10" rx="5" fill="var(--color-base-300)"/>
-            <path d="M60 96V52a60 30 0 0 1 120 0v44" fill="none" stroke="var(--color-primary)" stroke-width="12" stroke-linecap="round"/>
-            <rect x="96" y="30" width="48" height="16" rx="8" fill="var(--color-accent)"/>
-            <circle cx="88" cy="80" r="7" fill="var(--color-secondary)"/><rect x="82" y="86" width="12" height="10" rx="5" fill="var(--color-secondary)"/>
-            <circle cx="112" cy="78" r="7" fill="var(--color-info)"/><rect x="106" y="84" width="12" height="12" rx="5" fill="var(--color-info)"/>
-            <circle cx="136" cy="80" r="7" fill="var(--color-success)"/><rect x="130" y="86" width="12" height="10" rx="5" fill="var(--color-success)"/>
-            <circle cx="196" cy="82" r="6" fill="var(--color-secondary)" opacity=".6"/><circle cx="212" cy="84" r="6" fill="var(--color-info)" opacity=".6"/>
+          <svg viewBox="0 0 240 120" class="w-full max-w-xs" role="img" aria-label="An entrance booth with a staff member, a barrier and guests queueing">
+            <rect x="12" y="100" width="216" height="8" rx="4" fill="var(--color-base-300)"/>
+            <!-- booth: sign, roof, body, window with a staff member, counter -->
+            <rect x="42" y="16" width="44" height="14" rx="7" fill="var(--color-accent)"/>
+            <text x="64" y="26.2" text-anchor="middle" font-size="8.5" font-weight="700" letter-spacing=".08em" fill="var(--color-neutral)" style="font-family: var(--font-head)">GATE</text>
+            <path d="M24 44 32 32h64l8 12z" fill="var(--color-secondary)"/>
+            <rect x="32" y="44" width="64" height="56" rx="3" fill="var(--color-primary)"/>
+            <rect x="40" y="52" width="48" height="28" rx="3" fill="var(--color-base-100)"/>
+            <circle cx="64" cy="63" r="6" fill="var(--color-secondary)"/>
+            <path d="M54 80a10 9 0 0 1 20 0z" fill="var(--color-secondary)"/>
+            <rect x="36" y="79" width="56" height="5" rx="2.5" fill="var(--color-secondary)"/>
+            <!-- barrier -->
+            <rect x="104" y="76" width="9" height="24" rx="2" fill="var(--color-secondary)"/>
+            <rect x="108" y="80" width="56" height="6" rx="3" fill="var(--color-base-100)" stroke="var(--color-secondary)" stroke-width="1.5"/>
+            <path d="M122 80.75h7v4.5h-7zM140 80.75h7v4.5h-7z" fill="var(--color-accent)"/>
+            <!-- guests queueing -->
+            <circle cx="180" cy="72" r="6.5" fill="var(--color-secondary)"/><rect x="172" y="81" width="16" height="19" rx="7" fill="var(--color-secondary)"/>
+            <circle cx="201" cy="72" r="6.5" fill="var(--color-primary)"/><rect x="193" y="81" width="16" height="19" rx="7" fill="var(--color-primary)"/>
+            <circle cx="222" cy="73" r="6" fill="var(--color-primary)" opacity=".5"/><rect x="214.5" y="81.5" width="15" height="18.5" rx="7" fill="var(--color-primary)" opacity=".5"/>
           </svg>
           <h1 class="text-3xl sm:text-4xl font-bold leading-tight">Staffing plans for every entrance, based on arrival forecasts</h1>
           <p class="text-base-content/80 text-lg max-w-xl">Event Staffing Planner forecasts guest arrivals for each entrance and hour, shows the uncertainty in each forecast, and proposes staffing plans. The final decision stays with the planner.</p>

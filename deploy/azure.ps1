@@ -156,6 +156,9 @@ if (-not (az-quiet containerapp env show --name $EnvironmentName --resource-grou
 
 $secrets = @("db-url=$($dotenv['DATABASE_URL'])", "session-secret=$($dotenv['SESSION_SECRET'])")
 if ($EnableSignIn) { $secrets += "oidc-secret=$($dotenv['OIDC_CLIENT_SECRET'])" }
+# With a WorkOS API key, people sign in on the site's own pages instead of the provider's hosted page.
+$ownSignIn = $EnableSignIn -and $dotenv["WORKOS_API_KEY"] -and $dotenv["WORKOS_CLIENT_ID"]
+if ($ownSignIn) { $secrets += "workos-api-key=$($dotenv['WORKOS_API_KEY'])" }
 
 $envVars = @(
     "ENV=production", "PORT=8000", "ENGINE_PROFILE=light", "SINGLE_INSTANCE=1", "TRUST_PROXY=1",
@@ -168,6 +171,9 @@ if ($EnableSignIn) {
                   "MCP_AUDIENCE=$($dotenv['MCP_AUDIENCE'])")
 } else {
     $envVars += "AUTH_MODE=none"
+}
+if ($ownSignIn) {
+    $envVars += @("WORKOS_API_KEY=secretref:workos-api-key", "WORKOS_CLIENT_ID=$($dotenv['WORKOS_CLIENT_ID'])")
 }
 
 $creds = az acr credential show --name $Registry --query "{u:username, p:passwords[0].value}" --output json | ConvertFrom-Json
@@ -198,5 +204,5 @@ if ($PruneImages) {
 Step "Done"
 Write-Host "Dashboard:    $url/"
 Write-Host "MCP endpoint: $url/mcp"
-Write-Host "Sign-in:      $(if ($EnableSignIn) { 'on (WorkOS)' } else { 'OFF - anyone with the address can use it; run again with -EnableSignIn after WorkOS is set up' })"
+Write-Host "Sign-in:      $(if ($ownSignIn) { 'on (WorkOS, sign-in pages on this site)' } elseif ($EnableSignIn) { 'on (WorkOS hosted page)' } else { 'OFF - anyone with the address can use it; run again with -EnableSignIn after WorkOS is set up' })"
 Write-Host "The first request after an idle period wakes the app; give it up to a minute."

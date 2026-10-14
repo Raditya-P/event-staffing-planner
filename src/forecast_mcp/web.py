@@ -17,7 +17,7 @@ from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Respon
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import auth, jobs
+from . import auth, jobs, signin
 from . import services as S
 from .accounts import actor_for_identity, local_actor
 from .config import settings
@@ -305,12 +305,12 @@ def routes() -> list:
         Route("/api/workspace/reset-demo", api_reset_demo, methods=["POST"]),
         Mount("/static", StaticFiles(directory=STATIC), name="static"),
     ]
+    if settings.own_signin:  # sign-in pages on this site, through the WorkOS API
+        r += signin.routes()
+    elif settings.auth_enabled:  # the provider's hosted sign-in page
+        r += [Route("/login", auth.login), Route("/auth/callback", auth.callback)]
     if settings.auth_enabled:
-        r += [
-            Route("/login", auth.login),
-            Route("/auth/callback", auth.callback),
-            Route("/logout", auth.logout, methods=["GET", "POST"]),
-        ]
+        r.append(Route("/logout", auth.logout, methods=["GET", "POST"]))
     if settings.dev_routes:
         r += [
             Route("/dev/panel", dev_panel_host),

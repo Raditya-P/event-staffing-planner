@@ -83,6 +83,10 @@ class Settings:
     session_secret: str = field(default_factory=lambda: _env("SESSION_SECRET"))
     # Send PKCE on the dashboard login. Some providers accept it only for public clients; set 0 for those.
     oidc_pkce: bool = field(default_factory=lambda: _env("OIDC_PKCE", "1") == "1")
+    # WorkOS only: with these two, people sign in on this site's own /login page (signin.py) instead of the
+    # provider's hosted page. The client ID is the environment's, not an OAuth application's.
+    workos_api_key: str = field(default_factory=lambda: _env("WORKOS_API_KEY"))
+    workos_client_id: str = field(default_factory=lambda: _env("WORKOS_CLIENT_ID"))
     # Shown on the privacy page as the person to contact about data.
     contact_email: str = field(default_factory=lambda: _env("CONTACT_EMAIL"))
     # Behind a host's proxy (production), trust X-Forwarded-For so limits apply per real client.
@@ -124,6 +128,10 @@ class Settings:
         return self.auth_mode == "oidc"
 
     @property
+    def own_signin(self) -> bool:
+        return self.auth_enabled and bool(self.workos_api_key and self.workos_client_id)
+
+    @property
     def base_url(self) -> str:
         return self.public_base_url or f"http://{self.host}:{self.port}"
 
@@ -137,9 +145,14 @@ class Settings:
         if self.auth_mode not in ("none", "oidc"):
             issues.append(f"AUTH_MODE must be 'none' or 'oidc', not '{self.auth_mode}'.")
         if self.auth_enabled:
-            for name in ("public_base_url", "oidc_issuer", "oidc_client_id", "oidc_client_secret", "session_secret"):
+            needed = ["public_base_url", "oidc_issuer", "session_secret"]
+            if not self.own_signin:  # the hosted sign-in page needs an OAuth client of its own
+                needed += ["oidc_client_id", "oidc_client_secret"]
+            for name in needed:
                 if not getattr(self, name):
                     issues.append(f"AUTH_MODE=oidc needs {name.upper()}.")
+            if bool(self.workos_api_key) != bool(self.workos_client_id):
+                issues.append("WORKOS_API_KEY and WORKOS_CLIENT_ID are needed together for the site's own sign-in page.")
             if self.public_base_url and not self.public_base_url.startswith("https://") and self.is_production:
                 issues.append("PUBLIC_BASE_URL must use https in production.")
         if self.is_production:
